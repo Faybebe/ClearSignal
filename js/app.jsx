@@ -30,14 +30,19 @@ function App() {
     patientName: "",
     caregiverContact: "",
     caregiverName: "",
+    monitorContact: "",
+    monitorName: "",
     reminderTime: "09:00",
   });
+  const [careProfile, setCareProfile] = useState(createEmptyCareProfile("patient"));
   const [hospitalCard, setHospitalCard] = useState({
     ...DEFAULT_HOSPITAL_CARD,
   });
   const [lastCheckIn, setLastCheckIn] = useState(null);
   const [timelineEntries, setTimelineEntries] = useState([]);
   const [lastCheckInFlagged, setLastCheckInFlagged] = useState(false);
+  const [lastAlertRecipients, setLastAlertRecipients] = useState([]);
+  const [monitorAlertBanner, setMonitorAlertBanner] = useState(false);
 
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [tweaks, setTweaks] = useState({
@@ -47,6 +52,7 @@ function App() {
     darkMode: false,
     framed: true,
     sampleData: true,
+    simulateMonitorAlert: false,
   });
 
   useEffect(() => {
@@ -62,10 +68,20 @@ function App() {
   }, [tweaks.framed, tweaks.darkMode, tweaks.style]);
 
   useEffect(() => {
-    if (tweaks.role !== role) setRole(tweaks.role);
+    if (tweaks.role !== role) {
+      setRole(tweaks.role);
+      setCareProfile((profile) => ({ ...profile, role: tweaks.role }));
+    }
   }, [tweaks.role]);
 
-  const patientName = setup.patientName || "your loved one";
+  useEffect(() => {
+    if (tweaks.simulateMonitorAlert && role === "caregiver" && screen === "home") {
+      setMonitorAlertBanner(true);
+    }
+  }, [tweaks.simulateMonitorAlert, role, screen]);
+
+  const patientName =
+    careProfile.patientName || setup.patientName || "your loved one";
 
   const goTo = (next) => {
     setScreen(next);
@@ -74,6 +90,8 @@ function App() {
   };
 
   const finishOnboarding = () => {
+    const profile = buildCareProfileFromSetup(role, setup);
+    setCareProfile(profile);
     setOnboarded(true);
     setHospitalCard((c) => ({
       ...c,
@@ -100,6 +118,9 @@ function App() {
   };
 
   const handleSuddenAlert = ({ symptoms, note }) => {
+    const recipients = getAlertRecipients(careProfile);
+    const recipientNames = getRecipientDisplayNames(recipients);
+
     const entry = {
       day: new Date().getDate(),
       month: new Date().toLocaleString("en-US", { month: "short" }),
@@ -107,8 +128,15 @@ function App() {
       title: "Sudden change alert",
       detail: `${symptoms.join(", ")}${note ? ` · ${note}` : ""}`,
       status: "alert",
+      notified: recipientNames,
     };
+    setLastAlertRecipients(recipientNames);
     setTimelineEntries((prev) => [entry, ...prev]);
+
+    if (tweaks.simulateMonitorAlert && role === "caregiver" && recipients.length > 0) {
+      setMonitorAlertBanner(true);
+    }
+
     goTo("alert-sent");
   };
 
@@ -133,7 +161,9 @@ function App() {
     ) {
       setOnboarded(true);
       if (!setup.patientName) {
-        setSetup((s) => ({ ...s, patientName: "Margaret" }));
+        const nextSetup = { ...setup, patientName: "Margaret" };
+        setSetup(nextSetup);
+        setCareProfile(buildCareProfileFromSetup(role, nextSetup));
       }
     }
     goTo(screenId);
@@ -153,9 +183,11 @@ function App() {
             onNext={() => goTo("onboarding-role")}
             onErMode={() => {
               setOnboarded(true);
-              if (!setup.patientName) {
-                setSetup((s) => ({ ...s, patientName: "your loved one" }));
-              }
+              const nextSetup = setup.patientName
+                ? setup
+                : { ...setup, patientName: "your loved one" };
+              if (!setup.patientName) setSetup(nextSetup);
+              setCareProfile(buildCareProfileFromSetup(role, nextSetup));
               goTo("sudden-change");
             }}
           />
@@ -191,6 +223,10 @@ function App() {
             role={role}
             patientName={patientName}
             lastCheckIn={lastCheckIn}
+            timelineEntries={timelineEntries}
+            sampleData={tweaks.sampleData}
+            monitorAlertBanner={monitorAlertBanner}
+            onDismissMonitorBanner={() => setMonitorAlertBanner(false)}
             onCheckIn={() => goTo("checkin")}
             onSuddenChange={() => goTo("sudden-change")}
             onHospitalCard={() => goTo("hospital-card")}
@@ -201,6 +237,8 @@ function App() {
       case "checkin":
         return (
           <CheckInFlow
+            role={role}
+            patientName={patientName}
             onComplete={handleCheckInComplete}
             onCancel={() => goTo("home")}
           />
@@ -209,6 +247,8 @@ function App() {
       case "checkin-complete":
         return (
           <CheckInComplete
+            role={role}
+            patientName={patientName}
             flagged={lastCheckInFlagged}
             onHome={() => goTo("home")}
             onSuddenChange={() => goTo("sudden-change")}
@@ -218,6 +258,7 @@ function App() {
       case "sudden-change":
         return (
           <SuddenChangeFlow
+            role={role}
             patientName={patientName}
             onSend={handleSuddenAlert}
             onCancel={() => goTo("home")}
@@ -225,7 +266,14 @@ function App() {
         );
 
       case "alert-sent":
-        return <AlertSent onHome={() => goTo("home")} />;
+        return (
+          <AlertSent
+            role={role}
+            recipientNames={lastAlertRecipients}
+            onHome={() => goTo("home")}
+            onOpenHospitalCard={() => goTo("hospital-card")}
+          />
+        );
 
       case "timeline":
         return (
@@ -261,9 +309,11 @@ function App() {
             onNext={() => goTo("onboarding-role")}
             onErMode={() => {
               setOnboarded(true);
-              if (!setup.patientName) {
-                setSetup((s) => ({ ...s, patientName: "your loved one" }));
-              }
+              const nextSetup = setup.patientName
+                ? setup
+                : { ...setup, patientName: "your loved one" };
+              if (!setup.patientName) setSetup(nextSetup);
+              setCareProfile(buildCareProfileFromSetup(role, nextSetup));
               goTo("sudden-change");
             }}
           />

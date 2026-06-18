@@ -1,4 +1,4 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 const ICONS = {
   logo: "icons/ClearSignal.svg",
@@ -7,6 +7,7 @@ const ICONS = {
   trend: "icons/trend.svg",
   alert: "icons/alert.svg",
   card: "icons/card.svg",
+  bulb: "icons/bulb.svg",
 };
 
 function AppIcon({ name, className = "app-icon", alt = "", ...rest }) {
@@ -81,15 +82,21 @@ function Chip({ variant = "good", children }) {
 
 function ProgressDots({ total, current }) {
   return (
-    <div className="progress-dots" role="tablist" aria-label="Progress">
+    <div
+      className="progress-dots"
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={total}
+      aria-valuenow={current + 1}
+      aria-valuetext={`Step ${current + 1} of ${total}`}
+    >
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
           className={`progress-dots__dot ${
             i === current ? "progress-dots__dot--active" : ""
           }`}
-          role="tab"
-          aria-selected={i === current}
+          aria-hidden="true"
         />
       ))}
     </div>
@@ -124,15 +131,51 @@ function ToggleRow({ value, onChange, options }) {
   );
 }
 
-function Field({ label, hint, error, errorId, children }) {
+function Field({ label, hint, footnote, footnoteId, error, errorId, children }) {
+  const reactId = React.useId();
+  const inputId = `field-${reactId}`;
+  const hintId = hint ? `${inputId}-hint` : null;
+  const resolvedErrorId = error ? errorId || `${inputId}-error` : null;
+  const resolvedFootnoteId = footnote ? footnoteId || `${inputId}-footnote` : null;
+
+  const describedBy =
+    [hintId, resolvedErrorId, resolvedFootnoteId].filter(Boolean).join(" ") || undefined;
+
+  // Wire the label, description, and error state to the actual form control
+  // so screen readers announce them together (WCAG 1.3.1, 3.3.2, 4.1.2).
+  const control = React.isValidElement(children)
+    ? React.cloneElement(children, {
+        id: children.props.id || inputId,
+        "aria-describedby":
+          [children.props["aria-describedby"], describedBy].filter(Boolean).join(" ") ||
+          undefined,
+        "aria-invalid": error ? true : children.props["aria-invalid"],
+      })
+    : children;
+
+  const controlId = React.isValidElement(children)
+    ? children.props.id || inputId
+    : undefined;
+
   return (
     <div className="field">
-      <label className="field__label">{label}</label>
-      {hint && <span className="field__hint">{hint}</span>}
-      {children}
+      <label className="field__label" htmlFor={controlId}>
+        {label}
+      </label>
+      {hint && (
+        <span className="field__hint" id={hintId}>
+          {hint}
+        </span>
+      )}
+      {control}
       {error && (
-        <span className="field__error" id={errorId} role="alert">
+        <span className="field__error" id={resolvedErrorId} role="alert">
           {error}
+        </span>
+      )}
+      {footnote && (
+        <span className="field__footnote" id={resolvedFootnoteId}>
+          {footnote}
         </span>
       )}
     </div>
@@ -171,12 +214,25 @@ function ScreenLayout({
   scrollClass = "",
 }) {
   const titleClasses = ["screen__title", titleClassName].filter(Boolean).join(" ");
+  const headingRef = useRef(null);
+
+  // Move focus to the screen heading on navigation so keyboard and screen-reader
+  // users are oriented to the new screen instead of being stranded (WCAG 2.4.3).
+  useEffect(() => {
+    if (headingRef.current) {
+      headingRef.current.focus({ preventScroll: true });
+    }
+  }, [title]);
 
   return (
     <div className="screen">
       {(title || subtitle) && (
         <header className="screen__header">
-          {title && <h1 className={titleClasses}>{title}</h1>}
+          {title && (
+            <h1 className={titleClasses} tabIndex={-1} ref={headingRef}>
+              {title}
+            </h1>
+          )}
           {subtitle && <p className="screen__subtitle">{subtitle}</p>}
         </header>
       )}
@@ -199,8 +255,11 @@ function TweaksPanel({ open, config, onChange, onJump, screens }) {
       <div className="tweaks-panel__title">Tweaks</div>
 
       <div className="tweaks-panel__group">
-        <label className="tweaks-panel__label">Jump to screen</label>
+        <label className="tweaks-panel__label" htmlFor="tweaks-screen">
+          Jump to screen
+        </label>
         <select
+          id="tweaks-screen"
           value={config.screen}
           onChange={(e) => onJump(e.target.value)}
         >
@@ -213,8 +272,11 @@ function TweaksPanel({ open, config, onChange, onJump, screens }) {
       </div>
 
       <div className="tweaks-panel__group">
-        <label className="tweaks-panel__label">Role</label>
+        <label className="tweaks-panel__label" htmlFor="tweaks-role">
+          Role
+        </label>
         <select
+          id="tweaks-role"
           value={config.role}
           onChange={(e) => onChange({ ...config, role: e.target.value })}
         >
@@ -224,8 +286,11 @@ function TweaksPanel({ open, config, onChange, onJump, screens }) {
       </div>
 
       <div className="tweaks-panel__group">
-        <label className="tweaks-panel__label">Visual style</label>
+        <label className="tweaks-panel__label" htmlFor="tweaks-style">
+          Visual style
+        </label>
         <select
+          id="tweaks-style"
           value={config.style}
           onChange={(e) => onChange({ ...config, style: e.target.value })}
         >
@@ -235,10 +300,11 @@ function TweaksPanel({ open, config, onChange, onJump, screens }) {
       </div>
 
       <div className="tweaks-panel__group tweaks-panel__row">
-        <span className="tweaks-panel__label" style={{ margin: 0 }}>
+        <label className="tweaks-panel__label" htmlFor="tweaks-dark" style={{ margin: 0 }}>
           Dark mode
-        </span>
+        </label>
         <input
+          id="tweaks-dark"
           type="checkbox"
           checked={config.darkMode}
           onChange={(e) =>
@@ -248,10 +314,11 @@ function TweaksPanel({ open, config, onChange, onJump, screens }) {
       </div>
 
       <div className="tweaks-panel__group tweaks-panel__row">
-        <span className="tweaks-panel__label" style={{ margin: 0 }}>
+        <label className="tweaks-panel__label" htmlFor="tweaks-frame" style={{ margin: 0 }}>
           Phone frame
-        </span>
+        </label>
         <input
+          id="tweaks-frame"
           type="checkbox"
           checked={config.framed}
           onChange={(e) =>
@@ -261,14 +328,29 @@ function TweaksPanel({ open, config, onChange, onJump, screens }) {
       </div>
 
       <div className="tweaks-panel__group tweaks-panel__row">
-        <span className="tweaks-panel__label" style={{ margin: 0 }}>
+        <label className="tweaks-panel__label" htmlFor="tweaks-sample" style={{ margin: 0 }}>
           Sample timeline data
-        </span>
+        </label>
         <input
+          id="tweaks-sample"
           type="checkbox"
           checked={config.sampleData}
           onChange={(e) =>
             onChange({ ...config, sampleData: e.target.checked })
+          }
+        />
+      </div>
+
+      <div className="tweaks-panel__group tweaks-panel__row">
+        <label className="tweaks-panel__label" htmlFor="tweaks-monitor" style={{ margin: 0 }}>
+          Simulate monitor alert
+        </label>
+        <input
+          id="tweaks-monitor"
+          type="checkbox"
+          checked={config.simulateMonitorAlert}
+          onChange={(e) =>
+            onChange({ ...config, simulateMonitorAlert: e.target.checked })
           }
         />
       </div>
