@@ -83,6 +83,11 @@ function App() {
   const patientName =
     careProfile.patientName || setup.patientName || "your loved one";
 
+  const alertRecipientNames = getRecipientDisplayNames(
+    getAlertRecipients(careProfile)
+  );
+  const hasAlertRecipients = alertRecipientNames.length > 0;
+
   const goTo = (next) => {
     setScreen(next);
     setTweaks((t) => ({ ...t, screen: next }));
@@ -222,6 +227,7 @@ function App() {
           <HomeScreen
             role={role}
             patientName={patientName}
+            hasRecipients={hasAlertRecipients}
             lastCheckIn={lastCheckIn}
             timelineEntries={timelineEntries}
             sampleData={tweaks.sampleData}
@@ -260,6 +266,7 @@ function App() {
           <SuddenChangeFlow
             role={role}
             patientName={patientName}
+            hasRecipients={hasAlertRecipients}
             onSend={handleSuddenAlert}
             onCancel={() => goTo("home")}
           />
@@ -269,6 +276,7 @@ function App() {
         return (
           <AlertSent
             role={role}
+            patientName={patientName}
             recipientNames={lastAlertRecipients}
             onHome={() => goTo("home")}
             onOpenHospitalCard={() => goTo("hospital-card")}

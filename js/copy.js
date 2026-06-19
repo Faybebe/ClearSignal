@@ -16,13 +16,20 @@ const COPY = {
       "A caregiver will see this on the timeline. If symptoms are severe or sudden, use the alert button or seek care.",
     "checkin.complete.body.clear":
       "No concerns flagged. Keep up the daily rhythm — it helps spot real changes faster.",
-    "checkin.complete.alertCta": "Alert caregiver now",
+    "checkin.complete.alertCta": "Report a sudden change",
     "suddenChange.subtitle": "What's happening?",
     "suddenChange.cta": "Send alert to caregiver",
+    "suddenChange.cta.none": "Log sudden change",
     "alertSent.subtitle": "Your caregiver has been notified.",
     "alertSent.body":
       "They'll receive a text with what you logged and a link to the timeline.",
-    "home.suddenChange.subtitle": "Alert caregiver · Log what you're seeing",
+    "alertSent.none.subtitle": "Logged — no one was notified",
+    "alertSent.none.body":
+      "This is saved to your timeline, but no alert was sent because you haven't added a caregiver contact yet. Add one so your caregiver is notified next time.",
+    "alertSent.safety":
+      "ClearSignal isn't monitored around the clock. For a medical emergency, call 911.",
+    "home.suddenChange.subtitle": "Alert your caregiver · Log what you're seeing",
+    "home.suddenChange.subtitle.none": "Log what you're seeing · Seek care if severe",
     "home.title": "Good morning",
   },
   caregiver: {
@@ -41,16 +48,23 @@ const COPY = {
       "{name} flagged some concerns today. Consider a UTI test if confusion or urine changes were yes.",
     "checkin.complete.subtitle.clear": "Check-in saved. Same time tomorrow.",
     "checkin.complete.body.flagged":
-      "This appears on the timeline. If symptoms are severe or sudden, notify the care team or seek care.",
+      "This appears on the timeline. If symptoms are severe or sudden, report a sudden change or seek care.",
     "checkin.complete.body.clear":
       "No concerns flagged. The daily rhythm helps spot real changes faster.",
-    "checkin.complete.alertCta": "Notify care team now",
+    "checkin.complete.alertCta": "Report a sudden change",
     "suddenChange.subtitle": "What's happening with {name}?",
-    "suddenChange.cta": "Notify care team",
-    "alertSent.subtitle": "Care team notified.",
+    "suddenChange.cta": "Notify your care circle",
+    "suddenChange.cta.none": "Log sudden change",
+    "alertSent.subtitle": "Your care circle has been notified.",
     "alertSent.body":
       "They'll receive a text with what you logged and a link to the timeline.",
-    "home.suddenChange.subtitle": "Notify care team · Log what you're seeing",
+    "alertSent.none.subtitle": "Logged — no one was notified",
+    "alertSent.none.body":
+      "This sudden change is saved to {name}'s timeline, but no one was alerted — you haven't added a care-circle contact yet. Add one so they're notified next time.",
+    "alertSent.safety":
+      "ClearSignal isn't monitored around the clock. For a medical emergency, call 911.",
+    "home.suddenChange.subtitle": "Notify your care circle · Log what you're seeing",
+    "home.suddenChange.subtitle.none": "Log what you're seeing · Seek care if severe",
     "home.title": "{name}'s status",
     "home.checkin.title": "Log check-in for {name}",
     "home.checkin.subtitle": "About 60 seconds · observation questions",

@@ -480,6 +480,7 @@ function StatusSummaryCard({
 function HomeScreen({
   role,
   patientName,
+  hasRecipients,
   lastCheckIn,
   timelineEntries,
   sampleData,
@@ -539,7 +540,12 @@ function HomeScreen({
     <DashboardActionCard
       icon="alert"
       title="Something changed suddenly"
-      subtitle={getCopy("home.suddenChange.subtitle", copyCtx)}
+      subtitle={getCopy(
+        hasRecipients
+          ? "home.suddenChange.subtitle"
+          : "home.suddenChange.subtitle.none",
+        copyCtx
+      )}
       actionLabel="Log now"
       onClick={onSuddenChange}
       variant="danger"
@@ -775,7 +781,7 @@ function SelectOption({ label, selected, onClick }) {
   );
 }
 
-function SuddenChangeFlow({ role, patientName, onSend, onCancel }) {
+function SuddenChangeFlow({ role, patientName, hasRecipients, onSend, onCancel }) {
   const [symptoms, setSymptoms] = useState([]);
   const [note, setNote] = useState("");
   const copyCtx = { role, patientName };
@@ -808,7 +814,7 @@ function SuddenChangeFlow({ role, patientName, onSend, onCancel }) {
             disabled={symptoms.length === 0}
             onClick={() => onSend({ symptoms, note })}
           >
-            {getCopy("suddenChange.cta", copyCtx)}
+            {getCopy(hasRecipients ? "suddenChange.cta" : "suddenChange.cta.none", copyCtx)}
           </Button>
           <Button block variant="ghost" onClick={onCancel}>
             Cancel
@@ -848,36 +854,36 @@ function SuddenChangeFlow({ role, patientName, onSend, onCancel }) {
   );
 }
 
-function AlertSent({ role, recipientNames, onHome, onOpenHospitalCard }) {
-  const copyCtx = { role };
-  const notifiedList =
-    recipientNames.length > 0
-      ? recipientNames.join(", ")
-      : "your care team";
+function AlertSent({ role, patientName, recipientNames, onHome, onOpenHospitalCard }) {
+  const copyCtx = { role, patientName };
+  const notified = recipientNames.length > 0;
+  const notifiedList = recipientNames.join(", ");
 
   return (
     <ScreenLayout
-      title="Alert sent"
-      subtitle={getCopy("alertSent.subtitle", copyCtx)}
+      title={notified ? "Alert sent" : "Sudden change logged"}
+      subtitle={getCopy(notified ? "alertSent.subtitle" : "alertSent.none.subtitle", copyCtx)}
       footer={<Button block size="lg" onClick={onHome}>Done</Button>}
     >
       <div className="stack">
-        <div className="card">
+        <div className={`card ${notified ? "" : "card--danger"}`}>
           <p style={{ textWrap: "pretty", marginBottom: 12 }}>
-            {getCopy("alertSent.body", copyCtx)}
+            {getCopy(notified ? "alertSent.body" : "alertSent.none.body", copyCtx)}
           </p>
-          <p
-            style={{
-              fontSize: "var(--text-sm)",
-              fontWeight: 600,
-              color: "var(--text)",
-              marginBottom: 8,
-            }}
-          >
-            Notified: {notifiedList}
-          </p>
+          {notified && (
+            <p
+              style={{
+                fontSize: "var(--text-sm)",
+                fontWeight: 600,
+                color: "var(--text)",
+                marginBottom: 8,
+              }}
+            >
+              Notified: {notifiedList}
+            </p>
+          )}
           <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-            Next steps they may take:
+            {notified ? "Next steps they may take:" : "Next steps to consider:"}
           </p>
           <ul
             style={{
@@ -895,6 +901,15 @@ function AlertSent({ role, recipientNames, onHome, onOpenHospitalCard }) {
             <li>Go to ER if severe</li>
           </ul>
         </div>
+        <p
+          style={{
+            fontSize: "var(--text-sm)",
+            color: "var(--text-muted)",
+            textWrap: "pretty",
+          }}
+        >
+          {getCopy("alertSent.safety", copyCtx)}
+        </p>
         <button
           type="button"
           className="card card--interactive"
