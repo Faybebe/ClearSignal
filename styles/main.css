@@ -349,6 +349,19 @@ a {
   padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Scroll-shadow affordance: a soft shadow appears at the bottom edge while
+   there's more content below, and fades out once scrolled to the end. */
+.screen__scroll--fade {
+  background:
+    linear-gradient(var(--bg) 30%, transparent) top center / 100% 28px no-repeat,
+    linear-gradient(transparent, var(--bg) 70%) bottom center / 100% 28px no-repeat,
+    radial-gradient(farthest-side at 50% 0, rgba(57, 52, 133, 0.16), transparent)
+      top center / 100% 12px no-repeat,
+    radial-gradient(farthest-side at 50% 100%, rgba(57, 52, 133, 0.16), transparent)
+      bottom center / 100% 12px no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
 .screen__header {
   padding: var(--space-4) var(--screen-gutter-x) var(--space-3);
   flex-shrink: 0;
@@ -850,6 +863,38 @@ input[type="checkbox"]:focus-visible {
   border-width: 2px;
 }
 
+/* Neutral informational note (e.g. who gets notified) */
+.info-note {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--success-light);
+  border: 1px solid var(--border);
+}
+
+.info-note__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.85;
+}
+
+.info-note__text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--text-brand);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+[data-contrast="high"] .info-note {
+  border-width: 2px;
+}
+
 .dashboard-card {
   display: flex;
   gap: var(--space-4);
@@ -1156,6 +1201,16 @@ input[type="checkbox"]:focus-visible {
   color: var(--danger);
 }
 
+.chip--partial {
+  background: var(--success-light);
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .chip--partial {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-subtle);
+}
+
 .toggle-row {
   display: flex;
   align-items: stretch;
@@ -1165,7 +1220,15 @@ input[type="checkbox"]:focus-visible {
 
 .toggle-btn {
   flex: 1;
+  min-width: 0;
   min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 var(--space-2);
+  line-height: 1.2;
+  text-wrap: balance;
   border-radius: var(--radius-sm);
   border: none;
   background: var(--card);
@@ -1194,6 +1257,12 @@ input[type="checkbox"]:focus-visible {
   background: var(--danger-light);
   box-shadow: 0 0 0 2px var(--danger);
   color: var(--danger);
+}
+
+.toggle-btn--selected-na {
+  background: var(--card);
+  box-shadow: 0 0 0 2px var(--text-subtle);
+  color: var(--text-muted);
 }
 
 .toggle-btn--selected-yes:hover,
@@ -1570,6 +1639,17 @@ input[type="checkbox"]:focus-visible {
   border: none;
 }
 
+.status-circle--partial {
+  background: var(--success-light);
+  color: var(--text-muted);
+  border: none;
+}
+
+[data-theme="dark"] .status-circle--partial {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-subtle);
+}
+
 /* Tweaks */
 .tweaks-toggle {
   position: fixed;
@@ -1710,7 +1790,8 @@ input[type="checkbox"]:focus-visible {
 [data-contrast="high"] .role-card--selected:hover,
 [data-contrast="high"] .select-option--selected,
 [data-contrast="high"] .select-option--selected:hover,
-[data-contrast="high"] .toggle-btn--selected-yes {
+[data-contrast="high"] .toggle-btn--selected-yes,
+[data-contrast="high"] .toggle-btn--selected-na {
   border-color: var(--border-strong);
   border-width: 3px;
   box-shadow: none;
