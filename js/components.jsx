@@ -113,6 +113,8 @@ function ToggleRow({ value, onChange, options }) {
             ? "toggle-btn--selected-yes"
             : opt.value === "worse"
             ? "toggle-btn--selected-worse"
+            : opt.value === "na"
+            ? "toggle-btn--selected-na"
             : "toggle-btn--selected-no"
           : "";
         return (

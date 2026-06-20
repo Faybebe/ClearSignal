@@ -25,7 +25,7 @@ function App() {
   const [screen, setScreen] = useState("onboarding-welcome");
   const [tab, setTab] = useState("home");
   const [onboarded, setOnboarded] = useState(false);
-  const [role, setRole] = useState("patient");
+  const [role, setRole] = useState("caregiver");
   const [setup, setSetup] = useState({
     patientName: "",
     caregiverContact: "",
@@ -34,20 +34,20 @@ function App() {
     monitorName: "",
     reminderTime: "09:00",
   });
-  const [careProfile, setCareProfile] = useState(createEmptyCareProfile("patient"));
+  const [careProfile, setCareProfile] = useState(createEmptyCareProfile("caregiver"));
   const [hospitalCard, setHospitalCard] = useState({
     ...DEFAULT_HOSPITAL_CARD,
   });
   const [lastCheckIn, setLastCheckIn] = useState(null);
   const [timelineEntries, setTimelineEntries] = useState([]);
-  const [lastCheckInFlagged, setLastCheckInFlagged] = useState(false);
+  const [lastCheckInOutcome, setLastCheckInOutcome] = useState("clear");
   const [lastAlertRecipients, setLastAlertRecipients] = useState([]);
   const [monitorAlertBanner, setMonitorAlertBanner] = useState(false);
 
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [tweaks, setTweaks] = useState({
     screen: "onboarding-welcome",
-    role: "patient",
+    role: "caregiver",
     style: "calm",
     darkMode: false,
     framed: true,
@@ -105,19 +105,28 @@ function App() {
     goTo("home");
   };
 
-  const handleCheckInComplete = ({ flagged }) => {
+  const handleCheckInComplete = ({ flagged, outcome = flagged ? "flagged" : "clear" }) => {
+    const status =
+      outcome === "flagged" ? "watch" : outcome === "partial" ? "partial" : "good";
+    const detail =
+      outcome === "flagged"
+        ? "Concerns noted"
+        : outcome === "partial"
+        ? "Partly logged"
+        : "No concerns";
     const entry = {
       date: new Date().toDateString(),
       flagged,
+      outcome,
       day: new Date().getDate(),
       month: new Date().toLocaleString("en-US", { month: "short" }),
       type: "checkin",
       title: "Daily check-in",
-      detail: flagged ? "Concerns noted" : "No concerns",
-      status: flagged ? "watch" : "good",
+      detail,
+      status,
     };
-    setLastCheckIn({ date: entry.date, flagged });
-    setLastCheckInFlagged(flagged);
+    setLastCheckIn({ date: entry.date, flagged, outcome });
+    setLastCheckInOutcome(outcome);
     setTimelineEntries((prev) => [entry, ...prev]);
     goTo("checkin-complete");
   };
@@ -255,7 +264,7 @@ function App() {
           <CheckInComplete
             role={role}
             patientName={patientName}
-            flagged={lastCheckInFlagged}
+            outcome={lastCheckInOutcome}
             onHome={() => goTo("home")}
             onSuddenChange={() => goTo("sudden-change")}
           />

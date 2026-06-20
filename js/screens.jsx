@@ -24,11 +24,29 @@ const CHECKIN_QUESTIONS = [
   },
 ];
 
+// Maps a check-in outcome to its status pill. "partial" is a neutral state used
+// when nothing was flagged but some items were marked "Not observed", so the day
+// is not misrepresented as fully clear.
+function outcomeChip(outcome) {
+  if (outcome === "flagged") return { variant: "watch", label: "Watch" };
+  if (outcome === "partial") return { variant: "partial", label: "Partial" };
+  return { variant: "good", label: "Stable" };
+}
+
+function normalizeOutcome(checkIn) {
+  if (!checkIn) return "clear";
+  return checkIn.outcome || (checkIn.flagged ? "flagged" : "clear");
+}
+
 const DEFAULT_HOSPITAL_CARD = {
   patientName: "Margaret Chen",
   diagnosis: "Parkinson's Disease",
+  dob: "03/14/1948",
   neurologist: "Dr. Sarah Okonkwo — Movement Disorders",
   neurologistPhone: "(555) 014-2200",
+  pcp: "Dr. James Reyes",
+  pcpPhone: "(555) 014-8890",
+  emergencyContact: "Anna Chen (daughter) — (555) 014-3321",
   medications: [
     "Carbidopa/Levodopa 25/100 — 1 tab at 7am, 12pm, 5pm, 9pm",
     "Rasagiline 1mg — once daily morning",
@@ -107,8 +125,8 @@ function OnboardingWelcome({ onNext, onErMode }) {
         <div className="welcome-screen__hero">
           <AppIcon name="logo" className="welcome-screen__logo" alt="ClearSignal" />
           <p className="welcome-screen__tagline">
-            Because Parkinson's doesn't change overnight. Notice sudden changes
-            early.
+            For caregivers and care teams supporting someone with Parkinson's —
+            spot sudden changes early.
           </p>
         </div>
 
@@ -168,16 +186,16 @@ function OnboardingRole({ role, setRole, onNext, onBack }) {
     >
       <div className="stack">
         <RoleCard
-          title="I'm living with Parkinson's"
-          description="Daily check-ins and quick alerts when something feels off."
-          selected={role === "patient"}
-          onClick={() => setRole("patient")}
-        />
-        <RoleCard
-          title="I'm a caregiver"
-          description="Monitor trends and receive sudden-change alerts."
+          title="I'm a caregiver or care staff"
+          description="Log daily check-ins for a loved one, watch trends, and alert your care circle when something changes."
           selected={role === "caregiver"}
           onClick={() => setRole("caregiver")}
+        />
+        <RoleCard
+          title="I'm living with Parkinson's"
+          description="Track your own daily check-ins and send a quick alert when something feels off."
+          selected={role === "patient"}
+          onClick={() => setRole("patient")}
         />
       </div>
     </ScreenLayout>
@@ -350,7 +368,10 @@ function OnboardingSetup({ data, setData, role, onNext, onBack }) {
       )}
 
       <div className="form-section">
-        <Field label="Daily reminder time">
+        <Field
+          label="Daily reminder time"
+          hint="A nudge to complete the daily check-in. Editable anytime."
+        >
           <input
             className="field__input"
             type="time"
@@ -389,6 +410,8 @@ function TimelineSummary({ entries, onViewAll, showLink = true }) {
               ? "Stable"
               : entry.status === "watch"
               ? "Watch"
+              : entry.status === "partial"
+              ? "Partial"
               : "Alert"}
           </Chip>
         </div>
@@ -413,6 +436,8 @@ function StatusSummaryCard({
 }) {
   const checkedInToday = lastCheckIn?.date === new Date().toDateString();
   const displayEntries = getTimelineDisplayEntries(timelineEntries, sampleData);
+  const summaryOutcome = normalizeOutcome(lastCheckIn);
+  const summaryChip = outcomeChip(summaryOutcome);
 
   const body = (
     <>
@@ -421,16 +446,16 @@ function StatusSummaryCard({
           <div className="status-summary__label">Today&apos;s check-in</div>
           <div className="status-summary__value">
             {checkedInToday
-              ? lastCheckIn.flagged
+              ? summaryOutcome === "flagged"
                 ? "Done · some concerns"
+                : summaryOutcome === "partial"
+                ? "Done · partly logged"
                 : "Done · no major concerns"
               : "Not completed yet"}
           </div>
         </div>
         {checkedInToday ? (
-          <Chip variant={lastCheckIn.flagged ? "watch" : "good"}>
-            {lastCheckIn.flagged ? "Watch" : "Stable"}
-          </Chip>
+          <Chip variant={summaryChip.variant}>{summaryChip.label}</Chip>
         ) : (
           onCheckIn && (
             <button
@@ -499,6 +524,8 @@ function HomeScreen({
 
   const copyCtx = { role, patientName };
   const checkedInToday = lastCheckIn?.date === new Date().toDateString();
+  const homeOutcome = normalizeOutcome(lastCheckIn);
+  const homeChip = outcomeChip(homeOutcome);
 
   const patientCheckInCard = checkedInToday ? (
     <div className="card card--with-icon">
@@ -517,12 +544,14 @@ function HomeScreen({
             Today&apos;s check-in done
           </div>
           <div style={{ fontSize: "var(--text-sm)", color: "var(--text-brand)" }}>
-            {lastCheckIn.flagged ? "Some concerns noted" : "No major concerns"}
+            {homeOutcome === "flagged"
+              ? "Some concerns noted"
+              : homeOutcome === "partial"
+              ? "Some items not observed"
+              : "No major concerns"}
           </div>
         </div>
-        <Chip variant={lastCheckIn.flagged ? "watch" : "good"}>
-          {lastCheckIn.flagged ? "Watch" : "Stable"}
-        </Chip>
+        <Chip variant={homeChip.variant}>{homeChip.label}</Chip>
       </div>
     </div>
   ) : (
@@ -666,8 +695,11 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
     const next = { ...answers, [question.id]: value };
     setAnswers(next);
     if (isLast) {
-      const flagged = Object.values(next).some((v) => v === "yes");
-      onComplete({ answers: next, flagged });
+      const values = Object.values(next);
+      const flagged = values.some((v) => v === "yes");
+      const hasUnobserved = values.some((v) => v === "na");
+      const outcome = flagged ? "flagged" : hasUnobserved ? "partial" : "clear";
+      onComplete({ answers: next, flagged, outcome });
     } else {
       setStep(step + 1);
     }
@@ -707,6 +739,7 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
           options={[
             { value: "no", label: "No" },
             { value: "yes", label: "Yes" },
+            { value: "na", label: "Not observed" },
           ]}
         />
       </div>
@@ -724,19 +757,23 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
   );
 }
 
-function CheckInComplete({ role, patientName, flagged, onHome, onSuddenChange }) {
+function CheckInComplete({ role, patientName, outcome = "clear", onHome, onSuddenChange }) {
   const copyCtx = { role, patientName };
+  const flagged = outcome === "flagged";
+  const partial = outcome === "partial";
+  const variant = flagged ? "flagged" : partial ? "partial" : "clear";
+
+  const circleClass = flagged
+    ? "status-circle--watch"
+    : partial
+    ? "status-circle--partial"
+    : "status-circle--good";
+  const circleIcon = flagged ? "alert" : partial ? "bulb" : "check";
 
   return (
     <ScreenLayout
-      title={getCopy(
-        flagged ? "checkin.complete.title.flagged" : "checkin.complete.title.clear",
-        copyCtx
-      )}
-      subtitle={getCopy(
-        flagged ? "checkin.complete.subtitle.flagged" : "checkin.complete.subtitle.clear",
-        copyCtx
-      )}
+      title={getCopy(`checkin.complete.title.${variant}`, copyCtx)}
+      subtitle={getCopy(`checkin.complete.subtitle.${variant}`, copyCtx)}
       footer={
         <div className="stack stack--tight">
           {flagged && (
@@ -751,14 +788,11 @@ function CheckInComplete({ role, patientName, flagged, onHome, onSuddenChange })
       }
     >
       <div className="card" style={{ textAlign: "center", padding: "40px 24px" }}>
-        <div className={`status-circle ${flagged ? "status-circle--watch" : "status-circle--good"}`}>
-          <AppIcon name={flagged ? "alert" : "check"} className="app-icon--sm" />
+        <div className={`status-circle ${circleClass}`}>
+          <AppIcon name={circleIcon} className="app-icon--sm" />
         </div>
         <p style={{ color: "var(--text-brand)", textWrap: "pretty" }}>
-          {getCopy(
-            flagged ? "checkin.complete.body.flagged" : "checkin.complete.body.clear",
-            copyCtx
-          )}
+          {getCopy(`checkin.complete.body.${variant}`, copyCtx)}
         </p>
       </div>
     </ScreenLayout>
@@ -830,6 +864,13 @@ function SuddenChangeFlow({ role, patientName, hasRecipients, onSend, onCancel }
         </p>
       </div>
 
+      <div className="info-note" style={{ marginBottom: 20 }}>
+        <AppIcon name="bulb" className="info-note__icon" />
+        <p className="info-note__text">
+          {getCopy(hasRecipients ? "suddenChange.who" : "suddenChange.who.none", copyCtx)}
+        </p>
+      </div>
+
       <p style={{ fontWeight: 600, marginBottom: 12, color: "var(--text)" }}>Select all that apply</p>
       <div className="stack stack--tight" style={{ marginBottom: 20 }}>
         {options.map((opt) => (
@@ -880,6 +921,18 @@ function AlertSent({ role, patientName, recipientNames, onHome, onOpenHospitalCa
               }}
             >
               Notified: {notifiedList}
+            </p>
+          )}
+          {notified && (
+            <p
+              style={{
+                fontSize: "var(--text-sm)",
+                color: "var(--text-muted)",
+                textWrap: "pretty",
+                marginBottom: 12,
+              }}
+            >
+              {getCopy("alertSent.response", copyCtx)}
             </p>
           )}
           <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
@@ -968,7 +1021,7 @@ function TimelineScreen({ entries, sampleData, patientName }) {
                 }}
               >
                 <span style={{ fontWeight: 600 }}>{entry.title}</span>
-                <Chip variant={entry.status}>{entry.status === "good" ? "Stable" : entry.status === "watch" ? "Watch" : "Alert"}</Chip>
+                <Chip variant={entry.status}>{entry.status === "good" ? "Stable" : entry.status === "watch" ? "Watch" : entry.status === "partial" ? "Partial" : "Alert"}</Chip>
               </div>
               <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
                 {entry.detail}
@@ -986,6 +1039,7 @@ function HospitalCardScreen({ card, setCard, onExport, onBack }) {
     <ScreenLayout
       title="Hospital card"
       subtitle="Editable · Export as PDF for ER visits"
+      scrollClass="screen__scroll--fade"
       footer={
         <div className="stack stack--tight">
           <Button block size="lg" onClick={onExport}>
@@ -997,11 +1051,25 @@ function HospitalCardScreen({ card, setCard, onExport, onBack }) {
         </div>
       }
     >
+      <Field label="Diagnosis" hint="Shown first for ER staff">
+        <input
+          className="field__input"
+          value={card.diagnosis || ""}
+          onChange={(e) => setCard({ ...card, diagnosis: e.target.value })}
+        />
+      </Field>
       <Field label="Patient name">
         <input
           className="field__input"
           value={card.patientName}
           onChange={(e) => setCard({ ...card, patientName: e.target.value })}
+        />
+      </Field>
+      <Field label="Date of birth">
+        <input
+          className="field__input"
+          value={card.dob || ""}
+          onChange={(e) => setCard({ ...card, dob: e.target.value })}
         />
       </Field>
       <Field label="Movement disorder neurologist">
@@ -1011,12 +1079,35 @@ function HospitalCardScreen({ card, setCard, onExport, onBack }) {
           onChange={(e) => setCard({ ...card, neurologist: e.target.value })}
         />
       </Field>
-      <Field label="Phone">
+      <Field label="Neurologist phone">
         <input
           className="field__input"
           value={card.neurologistPhone}
           onChange={(e) =>
             setCard({ ...card, neurologistPhone: e.target.value })
+          }
+        />
+      </Field>
+      <Field label="Primary care provider (PCP)">
+        <input
+          className="field__input"
+          value={card.pcp || ""}
+          onChange={(e) => setCard({ ...card, pcp: e.target.value })}
+        />
+      </Field>
+      <Field label="PCP phone">
+        <input
+          className="field__input"
+          value={card.pcpPhone || ""}
+          onChange={(e) => setCard({ ...card, pcpPhone: e.target.value })}
+        />
+      </Field>
+      <Field label="Emergency contact" hint="Who ER staff should call">
+        <input
+          className="field__input"
+          value={card.emergencyContact || ""}
+          onChange={(e) =>
+            setCard({ ...card, emergencyContact: e.target.value })
           }
         />
       </Field>
@@ -1078,6 +1169,7 @@ function HospitalCardExport({ card, onBack, onDone }) {
           <div>
             <strong>{card.patientName}</strong> — {card.diagnosis}
           </div>
+          {card.dob && <div>DOB: {card.dob}</div>}
         </div>
 
         <div className="pdf-preview__section">
@@ -1085,6 +1177,21 @@ function HospitalCardExport({ card, onBack, onDone }) {
           <div>{card.neurologist}</div>
           <div>{card.neurologistPhone}</div>
         </div>
+
+        {(card.pcp || card.pcpPhone) && (
+          <div className="pdf-preview__section">
+            <div className="pdf-preview__section-title">Primary care provider</div>
+            {card.pcp && <div>{card.pcp}</div>}
+            {card.pcpPhone && <div>{card.pcpPhone}</div>}
+          </div>
+        )}
+
+        {card.emergencyContact && (
+          <div className="pdf-preview__section">
+            <div className="pdf-preview__section-title">Emergency contact</div>
+            <div>{card.emergencyContact}</div>
+          </div>
+        )}
 
         <div className="pdf-preview__section">
           <div className="pdf-preview__section-title">Medications</div>

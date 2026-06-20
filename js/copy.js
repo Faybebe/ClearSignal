@@ -16,13 +16,24 @@ const COPY = {
       "A caregiver will see this on the timeline. If symptoms are severe or sudden, use the alert button or seek care.",
     "checkin.complete.body.clear":
       "No concerns flagged. Keep up the daily rhythm — it helps spot real changes faster.",
+    "checkin.complete.title.partial": "Check-in saved — partly logged",
+    "checkin.complete.subtitle.partial":
+      "Some items were marked 'Not observed', so today isn't marked all-clear.",
+    "checkin.complete.body.partial":
+      "That's okay — fill in the unobserved items when you can. It keeps your baseline accurate so real changes stand out.",
     "checkin.complete.alertCta": "Report a sudden change",
     "suddenChange.subtitle": "What's happening?",
     "suddenChange.cta": "Send alert to caregiver",
     "suddenChange.cta.none": "Log sudden change",
+    "suddenChange.who":
+      "Your caregiver gets a text with what you logged. This isn't a monitored service — for an emergency, call 911.",
+    "suddenChange.who.none":
+      "No one will be texted yet — add a caregiver contact in setup so they're alerted next time. For an emergency, call 911.",
     "alertSent.subtitle": "Your caregiver has been notified.",
     "alertSent.body":
       "They'll receive a text with what you logged and a link to the timeline.",
+    "alertSent.response":
+      "They'll see your text and can call to check in. There's no guaranteed response time, so call 911 if it's an emergency.",
     "alertSent.none.subtitle": "Logged — no one was notified",
     "alertSent.none.body":
       "This is saved to your timeline, but no alert was sent because you haven't added a caregiver contact yet. Add one so your caregiver is notified next time.",
@@ -51,13 +62,24 @@ const COPY = {
       "This appears on the timeline. If symptoms are severe or sudden, report a sudden change or seek care.",
     "checkin.complete.body.clear":
       "No concerns flagged. The daily rhythm helps spot real changes faster.",
+    "checkin.complete.title.partial": "Partly logged for {name}",
+    "checkin.complete.subtitle.partial":
+      "Some items were marked 'Not observed', so today isn't marked all-clear.",
+    "checkin.complete.body.partial":
+      "That's okay — fill in the unobserved items when you can. It keeps {name}'s baseline accurate so real changes stand out.",
     "checkin.complete.alertCta": "Report a sudden change",
     "suddenChange.subtitle": "What's happening with {name}?",
     "suddenChange.cta": "Notify your care circle",
     "suddenChange.cta.none": "Log sudden change",
+    "suddenChange.who":
+      "Everyone you added to {name}'s care circle gets a text with what you logged. This isn't a monitored service — for an emergency, call 911.",
+    "suddenChange.who.none":
+      "No one will be texted yet — add a care-circle contact in setup so they're alerted next time. For an emergency, call 911.",
     "alertSent.subtitle": "Your care circle has been notified.",
     "alertSent.body":
       "They'll receive a text with what you logged and a link to the timeline.",
+    "alertSent.response":
+      "They'll see your text and can call to check in. There's no guaranteed response time, so call 911 if it's an emergency.",
     "alertSent.none.subtitle": "Logged — no one was notified",
     "alertSent.none.body":
       "This sudden change is saved to {name}'s timeline, but no one was alerted — you haven't added a care-circle contact yet. Add one so they're notified next time.",
