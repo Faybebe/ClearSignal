@@ -22,7 +22,64 @@ const CHECKIN_QUESTIONS = [
   {
     id: "eating",
   },
+  {
+    id: "mood",
+    hint: "More withdrawn, low, or tearful than usual",
+  },
 ];
+
+// Check-in items urgent enough to actively prompt escalation on the completion
+// screen (vs. just "logged, keep watching"). A fall is the clearest acute case.
+const ACUTE_CHECKIN_IDS = ["falls"];
+
+// Maps flagged daily check-in ids to matching sudden-change symptom option ids
+// so escalation pre-selects what was just logged. Items without an equivalent
+// sudden-change symptom (urine, eating, mood) are intentionally omitted.
+const CHECKIN_TO_SUDDEN = {
+  confusion: "confusion",
+  hallucinations: "hallucination",
+  falls: "fall",
+  fever: "fever",
+};
+
+function getSuddenSymptomsFromCheckin(flaggedIds = []) {
+  return flaggedIds
+    .map((id) => CHECKIN_TO_SUDDEN[id])
+    .filter(Boolean);
+}
+
+// Short labels for timeline detail and hospital-card incident suggestions.
+const CHECKIN_SHORT_LABELS = {
+  confusion: "Confusion",
+  hallucinations: "Hallucinations",
+  falls: "Falls",
+  urine: "Urine changes",
+  fever: "Fever",
+  eating: "Eating less",
+  mood: "Low mood",
+};
+
+// Decision guidance steps keyed by severity. "alert" = emergency (red),
+// "watch" = act today (yellow). Shown on the AlertSent screen (post-send).
+const TRIAGE_STEPS = {
+  alert: [
+    "Call 911 or go to the ER now",
+    "Bring the hospital card",
+    "Don't stop levodopa without neurologist approval",
+  ],
+  watch: [
+    "Run a home UTI test",
+    "Call PCP or neurologist today",
+    "Go to the ER if symptoms get worse",
+  ],
+};
+
+// The medical-action steps shown in the pre-send triage panel, before the
+// "log & notify" step is appended. Kept short so the priority is unambiguous.
+const TRIAGE_ACTION_STEPS = {
+  alert: ["Call 911 or go to the ER now"],
+  watch: ["Run a home UTI test", "Call the PCP or neurologist today"],
+};
 
 // Maps a check-in outcome to its status pill. "partial" is a neutral state used
 // when nothing was flagged but some items were marked "Not observed", so the day
@@ -53,9 +110,29 @@ const DEFAULT_HOSPITAL_CARD = {
     "Do NOT hold levodopa without neurologist approval",
   ],
   allergies: "Penicillin",
+  recentIncidents:
+    "Jun 10 — Near-fall in bathroom, no injury\nMay 28 — Fall from bed, bruised left hip",
   notes:
     "Sudden confusion may indicate UTI — test at home and contact PCP. Hallucinations worsened by Ciprofloxacin.",
 };
+
+// Suggests incident lines from logged alerts and fall check-ins so caregivers
+// don't have to re-type what the app already captured.
+function getIncidentSuggestionsFromTimeline(entries) {
+  return (entries || [])
+    .filter(
+      (e) =>
+        e.type === "alert" ||
+        (Array.isArray(e.flaggedIds) && e.flaggedIds.includes("falls"))
+    )
+    .map((e) => {
+      const what =
+        e.type === "alert"
+          ? e.detail || "Sudden change reported"
+          : "Fall / near-fall reported";
+      return `${e.month} ${e.day} — ${what}`;
+    });
+}
 
 function DashboardActionCard({
   icon,
@@ -558,7 +635,7 @@ function HomeScreen({
     <DashboardActionCard
       icon="check"
       title="Daily check-in"
-      subtitle="About 60 seconds · 6 questions"
+      subtitle="About 60 seconds · 7 questions"
       actionLabel="Check in"
       onClick={onCheckIn}
       titleEmphasis
@@ -695,11 +772,11 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
     const next = { ...answers, [question.id]: value };
     setAnswers(next);
     if (isLast) {
-      const values = Object.values(next);
-      const flagged = values.some((v) => v === "yes");
-      const hasUnobserved = values.some((v) => v === "na");
+      const flaggedIds = Object.keys(next).filter((id) => next[id] === "yes");
+      const flagged = flaggedIds.length > 0;
+      const hasUnobserved = Object.values(next).some((v) => v === "na");
       const outcome = flagged ? "flagged" : hasUnobserved ? "partial" : "clear";
-      onComplete({ answers: next, flagged, outcome });
+      onComplete({ answers: next, flagged, flaggedIds, outcome });
     } else {
       setStep(step + 1);
     }
@@ -739,9 +816,24 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
           options={[
             { value: "no", label: "No" },
             { value: "yes", label: "Yes" },
-            { value: "na", label: "Not observed" },
           ]}
         />
+        <div className="checkin-skip">
+          <button
+            type="button"
+            className={`checkin-skip__btn ${
+              answers[question.id] === "na" ? "checkin-skip__btn--active" : ""
+            }`}
+            aria-pressed={answers[question.id] === "na"}
+            onClick={() => setAnswer("na")}
+          >
+            Didn&apos;t see this
+          </button>
+          <p className="checkin-skip__hint">
+            Use this if you couldn&apos;t observe it today — keeps the day from
+            being marked all-clear.
+          </p>
+        </div>
       </div>
       <p
         style={{
@@ -757,35 +849,87 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
   );
 }
 
-function CheckInComplete({ role, patientName, outcome = "clear", onHome, onSuddenChange }) {
+function CheckInComplete({
+  role,
+  patientName,
+  outcome = "clear",
+  flaggedIds = [],
+  onHome,
+  onSuddenChange,
+}) {
   const copyCtx = { role, patientName };
-  const flagged = outcome === "flagged";
-  const partial = outcome === "partial";
-  const variant = flagged ? "flagged" : partial ? "partial" : "clear";
+  // When the only flagged item is low mood, route to supportive guidance rather
+  // than the infection-oriented sudden-change path.
+  const moodOnly =
+    outcome === "flagged" &&
+    flaggedIds.length > 0 &&
+    flaggedIds.every((id) => id === "mood");
+  const variant = moodOnly
+    ? "mood"
+    : outcome === "flagged"
+    ? "flagged"
+    : outcome === "partial"
+    ? "partial"
+    : "clear";
+  // Only flagged check-ins that include an acute item (e.g. a fall) actively
+  // push escalation. Other flagged days are "logged, keep watching."
+  const hasAcute =
+    variant === "flagged" &&
+    flaggedIds.some((id) => ACUTE_CHECKIN_IDS.includes(id));
 
-  const circleClass = flagged
-    ? "status-circle--watch"
-    : partial
-    ? "status-circle--partial"
-    : "status-circle--good";
-  const circleIcon = flagged ? "alert" : partial ? "bulb" : "check";
+  const circleClass =
+    variant === "flagged" || variant === "mood"
+      ? "status-circle--watch"
+      : variant === "partial"
+      ? "status-circle--partial"
+      : "status-circle--good";
+  const circleIcon =
+    variant === "flagged" ? "note" : variant === "clear" ? "check" : "bulb";
+
+  const subtitle = hasAcute
+    ? getCopy("checkin.complete.subtitle.flagged.acute", copyCtx)
+    : getCopy(`checkin.complete.subtitle.${variant}`, copyCtx);
+
+  let footer;
+  if (variant === "flagged" && hasAcute) {
+    footer = (
+      <div className="stack stack--tight">
+        <Button block variant="primary" size="lg" onClick={onSuddenChange}>
+          {getCopy("checkin.complete.alertCta", copyCtx)}
+        </Button>
+        <Button block size="lg" variant="ghost" onClick={onHome}>
+          Back to home
+        </Button>
+      </div>
+    );
+  } else if (variant === "flagged") {
+    footer = (
+      <div className="stack stack--tight">
+        <Button block size="lg" variant="primary" onClick={onHome}>
+          Back to home
+        </Button>
+        <button
+          type="button"
+          className="text-link checkin-complete__escalate"
+          onClick={onSuddenChange}
+        >
+          {getCopy("checkin.complete.alertCta", copyCtx)}
+        </button>
+      </div>
+    );
+  } else {
+    footer = (
+      <Button block size="lg" variant="primary" onClick={onHome}>
+        Back to home
+      </Button>
+    );
+  }
 
   return (
     <ScreenLayout
       title={getCopy(`checkin.complete.title.${variant}`, copyCtx)}
-      subtitle={getCopy(`checkin.complete.subtitle.${variant}`, copyCtx)}
-      footer={
-        <div className="stack stack--tight">
-          {flagged && (
-            <Button block variant="danger" size="lg" onClick={onSuddenChange}>
-              {getCopy("checkin.complete.alertCta", copyCtx)}
-            </Button>
-          )}
-          <Button block size="lg" variant={flagged ? "secondary" : "primary"} onClick={onHome}>
-            Back to home
-          </Button>
-        </div>
-      }
+      subtitle={subtitle}
+      footer={footer}
     >
       <div className="card" style={{ textAlign: "center", padding: "40px 24px" }}>
         <div className={`status-circle ${circleClass}`}>
@@ -815,8 +959,8 @@ function SelectOption({ label, selected, onClick }) {
   );
 }
 
-function SuddenChangeFlow({ role, patientName, hasRecipients, onSend, onCancel }) {
-  const [symptoms, setSymptoms] = useState([]);
+function SuddenChangeFlow({ role, patientName, hasRecipients, initialSymptoms = [], onSend, onCancel }) {
+  const [symptoms, setSymptoms] = useState(initialSymptoms);
   const [note, setNote] = useState("");
   const copyCtx = { role, patientName };
 
@@ -827,13 +971,22 @@ function SuddenChangeFlow({ role, patientName, hasRecipients, onSend, onCancel }
   };
 
   const options = [
-    { id: "confusion", label: "Sudden confusion" },
-    { id: "hallucination", label: "New hallucinations" },
-    { id: "mobility", label: "Can't walk / much weaker" },
-    { id: "fall", label: "Fall or injury" },
-    { id: "fever", label: "Fever" },
-    { id: "other", label: "Other sudden change" },
+    { id: "confusion", label: "Sudden confusion", severity: "watch" },
+    { id: "hallucination", label: "New hallucinations", severity: "watch" },
+    { id: "mobility", label: "Can't walk / much weaker", severity: "alert" },
+    { id: "fall", label: "Fall or injury", severity: "alert" },
+    { id: "fever", label: "Fever", severity: "watch" },
+    { id: "other", label: "Other sudden change", severity: "watch" },
   ];
+
+  const redIds = options.filter((o) => o.severity === "alert").map((o) => o.id);
+  // Red wins over yellow; null until at least one symptom is picked.
+  const severity =
+    symptoms.length === 0
+      ? null
+      : symptoms.some((s) => redIds.includes(s))
+      ? "alert"
+      : "watch";
 
   return (
     <ScreenLayout
@@ -844,30 +997,25 @@ function SuddenChangeFlow({ role, patientName, hasRecipients, onSend, onCancel }
           <Button
             block
             size="lg"
-            variant="danger"
+            variant="primary"
             disabled={symptoms.length === 0}
-            onClick={() => onSend({ symptoms, note })}
+            onClick={() => onSend({ symptoms, note, severity })}
           >
             {getCopy(hasRecipients ? "suddenChange.cta" : "suddenChange.cta.none", copyCtx)}
           </Button>
           <Button block variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
+          <p className="suddenchange-safety">
+            Not monitored — call 911 in an emergency.
+          </p>
         </div>
       }
     >
-      <div className="card card--danger" style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: "var(--text-sm)", textWrap: "pretty" }}>
-          <strong>When in doubt, seek care.</strong> Sudden changes in
-          Parkinson's are often caused by infection, dehydration, or medication
-          issues — not normal progression.
-        </p>
-      </div>
-
-      <div className="info-note" style={{ marginBottom: 20 }}>
-        <AppIcon name="bulb" className="info-note__icon" />
-        <p className="info-note__text">
-          {getCopy(hasRecipients ? "suddenChange.who" : "suddenChange.who.none", copyCtx)}
+      <div className="suddenchange-lead">
+        <AppIcon name="bulb" className="suddenchange-lead__icon" />
+        <p className="suddenchange-lead__text">
+          {getCopy("suddenChange.lead", copyCtx)}
         </p>
       </div>
 
@@ -883,6 +1031,36 @@ function SuddenChangeFlow({ role, patientName, hasRecipients, onSend, onCancel }
         ))}
       </div>
 
+      {severity && (
+        <div
+          className={`triage-panel triage-panel--${severity}`}
+          role="status"
+          style={{ marginBottom: 20 }}
+        >
+          <div className="triage-panel__title">
+            {getCopy(`triage.${severity}.title`, copyCtx)}
+          </div>
+          <ol className="triage-panel__steps">
+            {TRIAGE_ACTION_STEPS[severity].map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+            <li>
+              {getCopy(
+                hasRecipients
+                  ? "suddenChange.step.notify"
+                  : "suddenChange.step.notify.none",
+                copyCtx
+              )}
+            </li>
+          </ol>
+          {hasRecipients && (
+            <p className="triage-panel__note">
+              {getCopy("suddenChange.shareNote", copyCtx)}
+            </p>
+          )}
+        </div>
+      )}
+
       <Field label="Quick note (optional)">
         <textarea
           className="field__textarea"
@@ -895,85 +1073,71 @@ function SuddenChangeFlow({ role, patientName, hasRecipients, onSend, onCancel }
   );
 }
 
-function AlertSent({ role, patientName, recipientNames, onHome, onOpenHospitalCard }) {
+function formatNotifiedSentence(names) {
+  if (names.length === 1) return `${names[0]} has been notified.`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} have been notified.`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]} have been notified.`;
+}
+
+function AlertSent({ role, patientName, recipientNames, severity, onHome, onOpenHospitalCard }) {
   const copyCtx = { role, patientName };
   const notified = recipientNames.length > 0;
-  const notifiedList = recipientNames.join(", ");
+  const steps = TRIAGE_STEPS[severity] || TRIAGE_STEPS.watch;
+  const subtitle = notified
+    ? formatNotifiedSentence(recipientNames)
+    : getCopy("alertSent.none.subtitle", copyCtx);
 
   return (
     <ScreenLayout
       title={notified ? "Alert sent" : "Sudden change logged"}
-      subtitle={getCopy(notified ? "alertSent.subtitle" : "alertSent.none.subtitle", copyCtx)}
+      subtitle={subtitle}
       footer={<Button block size="lg" onClick={onHome}>Done</Button>}
     >
       <div className="stack">
-        <div className={`card ${notified ? "" : "card--danger"}`}>
-          <p style={{ textWrap: "pretty", marginBottom: 12 }}>
-            {getCopy(notified ? "alertSent.body" : "alertSent.none.body", copyCtx)}
-          </p>
-          {notified && (
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                fontWeight: 600,
-                color: "var(--text)",
-                marginBottom: 8,
-              }}
-            >
-              Notified: {notifiedList}
+        {severity === "alert" && (
+          <div className="triage-panel triage-panel--alert" role="status">
+            <div className="triage-panel__title">
+              {getCopy("triage.alert.title", copyCtx)}
+            </div>
+            <p className="triage-panel__body">
+              {getCopy("triage.alert.body", copyCtx)}
             </p>
-          )}
-          {notified && (
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                color: "var(--text-muted)",
-                textWrap: "pretty",
-                marginBottom: 12,
-              }}
-            >
-              {getCopy("alertSent.response", copyCtx)}
-            </p>
-          )}
-          <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-            {notified ? "Next steps they may take:" : "Next steps to consider:"}
-          </p>
-          <ul
-            style={{
-              marginTop: 8,
-              paddingLeft: 20,
-              fontSize: "var(--text-sm)",
-              color: "var(--text-muted)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-            }}
-          >
-            <li>Run a home UTI test</li>
-            <li>Call PCP or neurologist</li>
-            <li>Go to ER if severe</li>
-          </ul>
-        </div>
-        <p
-          style={{
-            fontSize: "var(--text-sm)",
-            color: "var(--text-muted)",
-            textWrap: "pretty",
-          }}
-        >
-          {getCopy("alertSent.safety", copyCtx)}
-        </p>
-        <button
-          type="button"
-          className="card card--interactive"
-          style={{ textAlign: "left", width: "100%" }}
-          onClick={onOpenHospitalCard}
-        >
-          <div style={{ fontWeight: 600 }}>Open hospital card</div>
-          <div style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-            Bring to ER if you go
           </div>
-        </button>
+        )}
+
+        <section className="alert-section">
+          <h2 className="section-title">What happens next</h2>
+          <div className={`card ${notified ? "" : "card--danger"}`}>
+            <p style={{ textWrap: "pretty" }}>
+              {getCopy(notified ? "alertSent.body" : "alertSent.none.body", copyCtx)}
+            </p>
+          </div>
+        </section>
+
+        <section className="alert-section">
+          <h2 className="section-title">
+            {severity === "alert" ? "What to do now" : "Next steps to consider"}
+          </h2>
+          <ol className="alert-steps">
+            {steps.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="alert-section">
+          <h2 className="section-title">Bring to the hospital</h2>
+          <button
+            type="button"
+            className="card card--interactive alert-hospital"
+            onClick={onOpenHospitalCard}
+          >
+            <h3 className="alert-hospital__title">Open hospital card</h3>
+            <p className="alert-hospital__sub">Bring to the ER if you go</p>
+          </button>
+        </section>
+
+        <p className="alert-safety">{getCopy("alertSent.safety", copyCtx)}</p>
       </div>
     </ScreenLayout>
   );
@@ -1034,7 +1198,21 @@ function TimelineScreen({ entries, sampleData, patientName }) {
   );
 }
 
-function HospitalCardScreen({ card, setCard, onExport, onBack }) {
+function HospitalCardScreen({ card, setCard, timelineEntries = [], onExport, onBack }) {
+  const suggestions = getIncidentSuggestionsFromTimeline(timelineEntries);
+
+  const addSuggestionsFromTimeline = () => {
+    const existing = (card.recentIncidents || "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const merged = [...existing];
+    suggestions.forEach((s) => {
+      if (!merged.includes(s)) merged.push(s);
+    });
+    setCard({ ...card, recentIncidents: merged.join("\n") });
+  };
+
   return (
     <ScreenLayout
       title="Hospital card"
@@ -1051,91 +1229,130 @@ function HospitalCardScreen({ card, setCard, onExport, onBack }) {
         </div>
       }
     >
-      <Field label="Diagnosis" hint="Shown first for ER staff">
-        <input
-          className="field__input"
-          value={card.diagnosis || ""}
-          onChange={(e) => setCard({ ...card, diagnosis: e.target.value })}
-        />
-      </Field>
-      <Field label="Patient name">
-        <input
-          className="field__input"
-          value={card.patientName}
-          onChange={(e) => setCard({ ...card, patientName: e.target.value })}
-        />
-      </Field>
-      <Field label="Date of birth">
-        <input
-          className="field__input"
-          value={card.dob || ""}
-          onChange={(e) => setCard({ ...card, dob: e.target.value })}
-        />
-      </Field>
-      <Field label="Movement disorder neurologist">
-        <input
-          className="field__input"
-          value={card.neurologist}
-          onChange={(e) => setCard({ ...card, neurologist: e.target.value })}
-        />
-      </Field>
-      <Field label="Neurologist phone">
-        <input
-          className="field__input"
-          value={card.neurologistPhone}
-          onChange={(e) =>
-            setCard({ ...card, neurologistPhone: e.target.value })
-          }
-        />
-      </Field>
-      <Field label="Primary care provider (PCP)">
-        <input
-          className="field__input"
-          value={card.pcp || ""}
-          onChange={(e) => setCard({ ...card, pcp: e.target.value })}
-        />
-      </Field>
-      <Field label="PCP phone">
-        <input
-          className="field__input"
-          value={card.pcpPhone || ""}
-          onChange={(e) => setCard({ ...card, pcpPhone: e.target.value })}
-        />
-      </Field>
-      <Field label="Emergency contact" hint="Who ER staff should call">
-        <input
-          className="field__input"
-          value={card.emergencyContact || ""}
-          onChange={(e) =>
-            setCard({ ...card, emergencyContact: e.target.value })
-          }
-        />
-      </Field>
-      <Field label="Medications" hint="Include timing — critical for PD">
-        <textarea
-          className="field__textarea"
-          value={card.medications.join("\n")}
-          onChange={(e) =>
-            setCard({ ...card, medications: e.target.value.split("\n") })
-          }
-          rows={5}
-        />
-      </Field>
-      <Field label="Allergies">
-        <input
-          className="field__input"
-          value={card.allergies}
-          onChange={(e) => setCard({ ...card, allergies: e.target.value })}
-        />
-      </Field>
-      <Field label="Emergency notes">
-        <textarea
-          className="field__textarea"
-          value={card.notes}
-          onChange={(e) => setCard({ ...card, notes: e.target.value })}
-          rows={3}
-        />
-      </Field>
+      <div className="form-section">
+        <h2 className="form-section__title">Patient</h2>
+        <Field label="Diagnosis" hint="Shown first for ER staff">
+          <input
+            className="field__input"
+            value={card.diagnosis || ""}
+            onChange={(e) => setCard({ ...card, diagnosis: e.target.value })}
+          />
+        </Field>
+        <Field label="Patient name">
+          <input
+            className="field__input"
+            value={card.patientName}
+            onChange={(e) => setCard({ ...card, patientName: e.target.value })}
+          />
+        </Field>
+        <Field label="Date of birth">
+          <input
+            className="field__input"
+            value={card.dob || ""}
+            onChange={(e) => setCard({ ...card, dob: e.target.value })}
+          />
+        </Field>
+      </div>
+
+      <div className="form-section">
+        <h2 className="form-section__title">Care team & contacts</h2>
+        <Field label="Movement disorder neurologist">
+          <input
+            className="field__input"
+            value={card.neurologist}
+            onChange={(e) => setCard({ ...card, neurologist: e.target.value })}
+          />
+        </Field>
+        <Field label="Neurologist phone">
+          <input
+            className="field__input"
+            value={card.neurologistPhone}
+            onChange={(e) =>
+              setCard({ ...card, neurologistPhone: e.target.value })
+            }
+          />
+        </Field>
+        <Field label="Primary care provider (PCP)">
+          <input
+            className="field__input"
+            value={card.pcp || ""}
+            onChange={(e) => setCard({ ...card, pcp: e.target.value })}
+          />
+        </Field>
+        <Field label="PCP phone">
+          <input
+            className="field__input"
+            value={card.pcpPhone || ""}
+            onChange={(e) => setCard({ ...card, pcpPhone: e.target.value })}
+          />
+        </Field>
+        <Field label="Emergency contact" hint="Who ER staff should call">
+          <input
+            className="field__input"
+            value={card.emergencyContact || ""}
+            onChange={(e) =>
+              setCard({ ...card, emergencyContact: e.target.value })
+            }
+          />
+        </Field>
+      </div>
+
+      <div className="form-section">
+        <h2 className="form-section__title">Medications & allergies</h2>
+        <Field label="Medications" hint="Include timing — critical for PD">
+          <textarea
+            className="field__textarea"
+            value={card.medications.join("\n")}
+            onChange={(e) =>
+              setCard({ ...card, medications: e.target.value.split("\n") })
+            }
+            rows={5}
+          />
+        </Field>
+        <Field label="Allergies">
+          <input
+            className="field__input"
+            value={card.allergies}
+            onChange={(e) => setCard({ ...card, allergies: e.target.value })}
+          />
+        </Field>
+      </div>
+
+      <div className="form-section">
+        <h2 className="form-section__title">Recent falls / incidents</h2>
+        <Field label="Date + what happened" hint="Last 30 days">
+          <textarea
+            className="field__textarea"
+            value={card.recentIncidents || ""}
+            onChange={(e) =>
+              setCard({ ...card, recentIncidents: e.target.value })
+            }
+            rows={3}
+          />
+        </Field>
+        {suggestions.length > 0 && (
+          <button
+            type="button"
+            className="text-link"
+            style={{ marginTop: "calc(-1 * var(--space-3))" }}
+            onClick={addSuggestionsFromTimeline}
+          >
+            Add {suggestions.length} from timeline
+          </button>
+        )}
+      </div>
+
+      <div className="form-section">
+        <h2 className="form-section__title">Notes for hospital staff</h2>
+        <Field label="Emergency notes">
+          <textarea
+            className="field__textarea"
+            value={card.notes}
+            onChange={(e) => setCard({ ...card, notes: e.target.value })}
+            rows={3}
+          />
+        </Field>
+      </div>
     </ScreenLayout>
   );
 }
@@ -1207,6 +1424,22 @@ function HospitalCardExport({ card, onBack, onDone }) {
           <div>{card.allergies}</div>
         </div>
 
+        {card.recentIncidents && card.recentIncidents.trim() && (
+          <div className="pdf-preview__section">
+            <div className="pdf-preview__section-title">
+              Recent falls / incidents
+            </div>
+            {card.recentIncidents
+              .split("\n")
+              .filter((line) => line.trim())
+              .map((line, i) => (
+                <div key={i} style={{ marginBottom: 4 }}>
+                  {line}
+                </div>
+              ))}
+          </div>
+        )}
+
         <div className="pdf-preview__section">
           <div className="pdf-preview__section-title">Notes for hospital staff</div>
           <div>{card.notes}</div>
@@ -1223,7 +1456,11 @@ function HospitalCardExport({ card, onBack, onDone }) {
 
 Object.assign(window, {
   CHECKIN_QUESTIONS,
+  CHECKIN_SHORT_LABELS,
+  TRIAGE_STEPS,
   DEFAULT_HOSPITAL_CARD,
+  getIncidentSuggestionsFromTimeline,
+  getSuddenSymptomsFromCheckin,
   OnboardingWelcome,
   OnboardingRole,
   OnboardingSetup,

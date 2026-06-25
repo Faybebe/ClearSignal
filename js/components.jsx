@@ -8,6 +8,7 @@ const ICONS = {
   alert: "icons/alert.svg",
   card: "icons/card.svg",
   bulb: "icons/bulb.svg",
+  note: "icons/Note.svg",
 };
 
 function AppIcon({ name, className = "app-icon", alt = "", ...rest }) {
@@ -164,12 +165,12 @@ function Field({ label, hint, footnote, footnoteId, error, errorId, children }) 
       <label className="field__label" htmlFor={controlId}>
         {label}
       </label>
+      {control}
       {hint && (
         <span className="field__hint" id={hintId}>
           {hint}
         </span>
       )}
-      {control}
       {error && (
         <span className="field__error" id={resolvedErrorId} role="alert">
           {error}

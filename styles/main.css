@@ -895,6 +895,223 @@ input[type="checkbox"]:focus-visible {
   border-width: 2px;
 }
 
+/* Severity-coded triage guidance — reuses the app's status color language
+   (alert = red/emergency, watch = yellow/act today). */
+.triage-panel {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.triage-panel--alert {
+  background: var(--danger-light);
+  border-color: var(--danger);
+}
+
+.triage-panel--watch {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.triage-panel__title {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  letter-spacing: 0.01em;
+  margin-bottom: var(--space-1);
+}
+
+.triage-panel--alert .triage-panel__title {
+  color: var(--danger);
+}
+
+.triage-panel--watch .triage-panel__title {
+  color: #8a6510;
+}
+
+[data-theme="dark"] .triage-panel--watch .triage-panel__title {
+  color: var(--chip-watch-text, #ffd98a);
+}
+
+.triage-panel__body {
+  font-size: var(--text-sm);
+  color: var(--text-brand);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.triage-panel__steps {
+  margin: var(--space-1) 0 0;
+  padding-left: 1.4em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-brand);
+  line-height: 1.4;
+}
+
+.triage-panel__steps li {
+  text-wrap: pretty;
+}
+
+.triage-panel__steps li::marker {
+  font-weight: 700;
+}
+
+.triage-panel__note {
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+[data-contrast="high"] .triage-panel {
+  border-width: 2px;
+}
+
+/* Slim, low-weight lead line on the Sudden change screen — keeps the symptom
+   checklist near the top instead of two heavy boxes. */
+.suddenchange-lead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+
+.suddenchange-lead__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+.suddenchange-lead__text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.suddenchange-safety {
+  margin-top: var(--space-1);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+/* Alert sent — section hierarchy */
+.alert-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.section-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.alert-steps {
+  margin: 0;
+  padding-left: 1.4em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-brand);
+  line-height: 1.4;
+}
+
+.alert-steps li {
+  text-wrap: pretty;
+}
+
+.alert-hospital {
+  text-align: left;
+  width: 100%;
+}
+
+.alert-hospital__title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.alert-hospital__sub {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.alert-safety {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+/* Daily check-in — "didn't see this" skip, separated from the Yes/No answers */
+.checkin-skip {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.checkin-skip__btn {
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.checkin-skip__btn:hover {
+  color: var(--text);
+}
+
+.checkin-skip__btn--active {
+  text-decoration: none;
+  background: var(--card);
+  box-shadow: 0 0 0 2px var(--text-subtle);
+  color: var(--text-muted);
+}
+
+.checkin-skip__hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+[data-contrast="high"] .checkin-skip__btn--active {
+  box-shadow: none;
+  border: 2px solid var(--border-strong);
+}
+
+/* Quiet escalation link on a non-acute flagged check-in completion */
+.checkin-complete__escalate {
+  align-self: center;
+}
+
 .dashboard-card {
   display: flex;
   gap: var(--space-4);
@@ -1144,12 +1361,23 @@ input[type="checkbox"]:focus-visible {
 }
 
 .form-section__title {
-  font-size: var(--text-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-subtle);
   margin-bottom: var(--space-4);
+}
+
+/* Thin divider line extending from the section name to the end of the row */
+.form-section__title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--divider, rgba(71, 65, 166, 0.22));
 }
 
 .card--with-icon {

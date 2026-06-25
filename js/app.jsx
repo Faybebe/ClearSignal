@@ -41,7 +41,10 @@ function App() {
   const [lastCheckIn, setLastCheckIn] = useState(null);
   const [timelineEntries, setTimelineEntries] = useState([]);
   const [lastCheckInOutcome, setLastCheckInOutcome] = useState("clear");
+  const [lastCheckInFlaggedIds, setLastCheckInFlaggedIds] = useState([]);
+  const [suddenPrefill, setSuddenPrefill] = useState([]);
   const [lastAlertRecipients, setLastAlertRecipients] = useState([]);
+  const [lastAlertSeverity, setLastAlertSeverity] = useState("watch");
   const [monitorAlertBanner, setMonitorAlertBanner] = useState(false);
 
   const [tweaksOpen, setTweaksOpen] = useState(false);
@@ -105,18 +108,28 @@ function App() {
     goTo("home");
   };
 
-  const handleCheckInComplete = ({ flagged, outcome = flagged ? "flagged" : "clear" }) => {
+  const handleCheckInComplete = ({
+    flagged,
+    flaggedIds = [],
+    outcome = flagged ? "flagged" : "clear",
+  }) => {
     const status =
       outcome === "flagged" ? "watch" : outcome === "partial" ? "partial" : "good";
+    const flaggedLabels = flaggedIds
+      .map((id) => CHECKIN_SHORT_LABELS[id])
+      .filter(Boolean);
     const detail =
       outcome === "flagged"
-        ? "Concerns noted"
+        ? flaggedLabels.length
+          ? flaggedLabels.join(", ")
+          : "Concerns noted"
         : outcome === "partial"
         ? "Partly logged"
         : "No concerns";
     const entry = {
       date: new Date().toDateString(),
       flagged,
+      flaggedIds,
       outcome,
       day: new Date().getDate(),
       month: new Date().toLocaleString("en-US", { month: "short" }),
@@ -127,11 +140,12 @@ function App() {
     };
     setLastCheckIn({ date: entry.date, flagged, outcome });
     setLastCheckInOutcome(outcome);
+    setLastCheckInFlaggedIds(flaggedIds);
     setTimelineEntries((prev) => [entry, ...prev]);
     goTo("checkin-complete");
   };
 
-  const handleSuddenAlert = ({ symptoms, note }) => {
+  const handleSuddenAlert = ({ symptoms, note, severity = "watch" }) => {
     const recipients = getAlertRecipients(careProfile);
     const recipientNames = getRecipientDisplayNames(recipients);
 
@@ -141,10 +155,11 @@ function App() {
       type: "alert",
       title: "Sudden change alert",
       detail: `${symptoms.join(", ")}${note ? ` · ${note}` : ""}`,
-      status: "alert",
+      status: severity,
       notified: recipientNames,
     };
     setLastAlertRecipients(recipientNames);
+    setLastAlertSeverity(severity);
     setTimelineEntries((prev) => [entry, ...prev]);
 
     if (tweaks.simulateMonitorAlert && role === "caregiver" && recipients.length > 0) {
@@ -243,7 +258,10 @@ function App() {
             monitorAlertBanner={monitorAlertBanner}
             onDismissMonitorBanner={() => setMonitorAlertBanner(false)}
             onCheckIn={() => goTo("checkin")}
-            onSuddenChange={() => goTo("sudden-change")}
+            onSuddenChange={() => {
+              setSuddenPrefill([]);
+              goTo("sudden-change");
+            }}
             onHospitalCard={() => goTo("hospital-card")}
             onViewTimeline={() => goTo("timeline")}
           />
@@ -265,8 +283,12 @@ function App() {
             role={role}
             patientName={patientName}
             outcome={lastCheckInOutcome}
+            flaggedIds={lastCheckInFlaggedIds}
             onHome={() => goTo("home")}
-            onSuddenChange={() => goTo("sudden-change")}
+            onSuddenChange={() => {
+              setSuddenPrefill(getSuddenSymptomsFromCheckin(lastCheckInFlaggedIds));
+              goTo("sudden-change");
+            }}
           />
         );
 
@@ -276,6 +298,7 @@ function App() {
             role={role}
             patientName={patientName}
             hasRecipients={hasAlertRecipients}
+            initialSymptoms={suddenPrefill}
             onSend={handleSuddenAlert}
             onCancel={() => goTo("home")}
           />
@@ -287,6 +310,7 @@ function App() {
             role={role}
             patientName={patientName}
             recipientNames={lastAlertRecipients}
+            severity={lastAlertSeverity}
             onHome={() => goTo("home")}
             onOpenHospitalCard={() => goTo("hospital-card")}
           />
@@ -306,6 +330,7 @@ function App() {
           <HospitalCardScreen
             card={hospitalCard}
             setCard={setHospitalCard}
+            timelineEntries={timelineEntries}
             onExport={() => goTo("hospital-export")}
             onBack={() => goTo("home")}
           />
