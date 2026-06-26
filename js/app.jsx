@@ -1,17 +1,20 @@
 const { useState, useEffect } = React;
 
 const SCREEN_LIST = [
-  { id: "onboarding-welcome", label: "01 Onboarding — Welcome" },
-  { id: "onboarding-role", label: "02 Onboarding — Role" },
-  { id: "onboarding-setup", label: "03 Onboarding — Setup" },
-  { id: "home", label: "04 Home" },
-  { id: "checkin", label: "05 Daily check-in" },
-  { id: "checkin-complete", label: "06 Check-in complete" },
-  { id: "sudden-change", label: "07 Sudden change" },
-  { id: "alert-sent", label: "08 Alert sent" },
-  { id: "timeline", label: "09 Timeline" },
-  { id: "hospital-card", label: "10 Hospital card" },
-  { id: "hospital-export", label: "11 PDF export" },
+  { id: "onboarding-splash", label: "01 Onboarding — Splash" },
+  { id: "onboarding-welcome", label: "02 Onboarding — Welcome" },
+  { id: "privacy", label: "02b Privacy & data" },
+  { id: "onboarding-intro", label: "03 Onboarding — Walkthrough" },
+  { id: "onboarding-role", label: "04 Onboarding — Role" },
+  { id: "onboarding-setup", label: "05 Onboarding — Setup" },
+  { id: "home", label: "06 Home" },
+  { id: "checkin", label: "07 Daily check-in" },
+  { id: "checkin-complete", label: "08 Check-in complete" },
+  { id: "sudden-change", label: "09 Sudden change" },
+  { id: "alert-sent", label: "10 Alert sent" },
+  { id: "timeline", label: "11 Timeline" },
+  { id: "hospital-card", label: "12 Hospital card" },
+  { id: "hospital-export", label: "13 PDF export" },
 ];
 
 const NAV_ITEMS = [
@@ -22,7 +25,7 @@ const NAV_ITEMS = [
 ];
 
 function App() {
-  const [screen, setScreen] = useState("onboarding-welcome");
+  const [screen, setScreen] = useState("onboarding-splash");
   const [tab, setTab] = useState("home");
   const [onboarded, setOnboarded] = useState(false);
   const [role, setRole] = useState("caregiver");
@@ -49,7 +52,7 @@ function App() {
 
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [tweaks, setTweaks] = useState({
-    screen: "onboarding-welcome",
+    screen: "onboarding-splash",
     role: "caregiver",
     style: "calm",
     darkMode: false,
@@ -184,7 +187,10 @@ function App() {
 
   const handleTweaksJump = (screenId) => {
     if (
+      screenId !== "onboarding-splash" &&
+      screenId !== "onboarding-intro" &&
       screenId !== "onboarding-welcome" &&
+      screenId !== "privacy" &&
       screenId !== "onboarding-role" &&
       screenId !== "onboarding-setup"
     ) {
@@ -206,10 +212,25 @@ function App() {
 
   const renderScreen = () => {
     switch (screen) {
+      case "onboarding-splash":
+        return <OnboardingSplash onContinue={() => goTo("onboarding-welcome")} />;
+
+      case "onboarding-intro":
+        return (
+          <OnboardingIntro
+            onDone={() => goTo("onboarding-role")}
+            onSkip={() => goTo("onboarding-role")}
+          />
+        );
+
+      case "privacy":
+        return <PrivacyScreen onBack={() => goTo("onboarding-welcome")} />;
+
       case "onboarding-welcome":
         return (
           <OnboardingWelcome
-            onNext={() => goTo("onboarding-role")}
+            onNext={() => goTo("onboarding-intro")}
+            onPrivacy={() => goTo("privacy")}
             onErMode={() => {
               setOnboarded(true);
               const nextSetup = setup.patientName
@@ -363,8 +384,12 @@ function App() {
     }
   };
 
+  // The splash is the only screen whose blue background should fill the whole
+  // phone, including the status-bar/safe-area region rather than stopping below.
+  const immersive = screen === "onboarding-splash";
+
   const shell = (
-    <div className="app-shell">
+    <div className={`app-shell ${immersive ? "app-shell--tinted" : ""}`}>
       {renderScreen()}
       {showNav && (
         <BottomNav items={NAV_ITEMS} active={tab} onChange={handleNav} />
@@ -375,7 +400,7 @@ function App() {
   return (
     <>
       {tweaks.framed ? (
-        <div className="phone-frame">
+        <div className={`phone-frame ${immersive ? "phone-frame--tinted" : ""}`}>
           <div className="phone-frame__status" aria-hidden="true">
             <span className="phone-frame__time">9:41</span>
             <div className="phone-frame__island" />

@@ -1,4 +1,4 @@
-const { useState } = React;
+const { useState, useEffect } = React;
 
 const CHECKIN_QUESTIONS = [
   {
@@ -195,7 +195,7 @@ function RoleCard({ title, description, selected, onClick }) {
   );
 }
 
-function OnboardingWelcome({ onNext, onErMode }) {
+function OnboardingWelcome({ onNext, onErMode, onPrivacy }) {
   return (
     <div className="screen welcome-screen">
       <div className="welcome-screen__main">
@@ -205,26 +205,6 @@ function OnboardingWelcome({ onNext, onErMode }) {
             For caregivers and care teams supporting someone with Parkinson's —
             spot sudden changes early.
           </p>
-        </div>
-
-        <div className="welcome-screen__features">
-          <div className="welcome-screen__row">
-            <FeatureCard
-              icon="check"
-              label="Daily 60-second check-ins"
-              className="feature-card--tall"
-            />
-            <FeatureCard
-              icon="alert"
-              label="One-tap alerts for sudden change"
-              className="feature-card--tall"
-            />
-          </div>
-          <FeatureCard
-            icon="card"
-            label="Hospital card with meds and neurologist info"
-            className="feature-card--wide"
-          />
         </div>
       </div>
 
@@ -240,6 +220,184 @@ function OnboardingWelcome({ onNext, onErMode }) {
         <p className="welcome-screen__disclaimer">
           Not a medical device. For logging and care coordination only.
         </p>
+        <button type="button" className="text-link" onClick={onPrivacy}>
+          Privacy &amp; your data
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Plain-language trust layer reached from the welcome screen. Content is
+// role-neutral (shown before role selection) and kept honest to a prototype.
+const PRIVACY_SECTIONS = [
+  {
+    title: "This is a prototype",
+    body: "This demo stores nothing. Your entries live only in this browser session and clear when you reload — nothing is sent anywhere.",
+  },
+  {
+    title: "What the real app would store",
+    body: "Daily check-ins, sudden-change logs, and your hospital card — encrypted and tied to your account.",
+  },
+  {
+    title: "Who can see it",
+    body: "Only the care circle you choose. Alerts go solely to the contacts you add in setup — no one else.",
+  },
+  {
+    title: "What we'd never do",
+    body: "We'd never sell your data or share it for advertising.",
+  },
+  {
+    title: "Not a medical device",
+    body: "ClearSignal isn't a monitored service or a medical device. In an emergency, always call 911.",
+  },
+  {
+    title: "HIPAA & certification",
+    body: "Real HIPAA compliance is an infrastructure and legal effort, not just an app screen. This prototype doesn't claim any privacy certification yet — it shows how the real product would handle your data.",
+  },
+];
+
+function PrivacyScreen({ onBack }) {
+  return (
+    <ScreenLayout
+      title="Your data & privacy"
+      subtitle="How ClearSignal handles your information, in plain language."
+      scrollClass="screen__scroll--fade"
+      footer={
+        <Button block size="lg" onClick={onBack}>
+          Back
+        </Button>
+      }
+    >
+      <div className="stack">
+        {PRIVACY_SECTIONS.map((section, i) => (
+          <div key={i} className="card">
+            <h2 className="section-title" style={{ marginBottom: 4 }}>
+              {section.title}
+            </h2>
+            <p
+              style={{
+                fontSize: "var(--text-sm)",
+                color: "var(--text-brand)",
+                textWrap: "pretty",
+              }}
+            >
+              {section.body}
+            </p>
+          </div>
+        ))}
+      </div>
+    </ScreenLayout>
+  );
+}
+
+// Brief splash shown on launch — mirrors the get-started welcome's brand, then
+// auto-advances to the educational walkthrough. Tap/Enter skips the wait.
+function OnboardingSplash({ onContinue }) {
+  useEffect(() => {
+    const timer = setTimeout(onContinue, 1800);
+    return () => clearTimeout(timer);
+  }, [onContinue]);
+
+  return (
+    <div
+      className="screen splash-screen"
+      role="button"
+      tabIndex={0}
+      aria-label="Continue"
+      onClick={onContinue}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onContinue();
+        }
+      }}
+    >
+      <div className="splash-screen__hero">
+        <AppIcon name="logo" className="splash-screen__logo" alt="ClearSignal" />
+      </div>
+      <img
+        src="icons/Tulip.png"
+        alt=""
+        aria-hidden="true"
+        className="splash-screen__art"
+      />
+    </div>
+  );
+}
+
+// Role-neutral education shown before the get-started welcome. One card per
+// step with progress dots; fully skippable.
+const INTRO_CARDS = [
+  {
+    icon: "question",
+    image: "icons/Dashboard.png",
+    imageAlt: "ClearSignal home dashboard",
+    title: "What ClearSignal helps you do",
+    body: "ClearSignal helps you and your care circle notice sudden changes early, keep a simple record, and know what to do when something feels off.",
+  },
+  {
+    icon: "check",
+    image: "icons/Check-ins.png",
+    imageAlt: "A daily check-in question",
+    title: "A minute a day builds the bigger picture",
+    body: "A few simple questions about confusion, falls, appetite, mood, and more. Done daily, they reveal your loved one's baseline, so a real change stands out instead of being missed.",
+  },
+  {
+    icon: "alert",
+    image: "icons/Hospital card 2.png",
+    imageAlt: "The hospital card export",
+    title: "When it's urgent, you're not alone",
+    body: "If something changes suddenly, one tap logs it and texts the contacts you choose. ClearSignal also guides you on what to do next and keeps a hospital card ready.",
+  },
+];
+
+function OnboardingIntro({ onDone, onSkip }) {
+  const [step, setStep] = useState(0);
+  const card = INTRO_CARDS[step];
+  const isLast = step === INTRO_CARDS.length - 1;
+  const isLogo = card.icon === "logo";
+
+  const next = () => (isLast ? onDone() : setStep((s) => s + 1));
+  const back = () => setStep((s) => Math.max(0, s - 1));
+
+  return (
+    <div className="screen intro-screen">
+      <div className="intro-screen__top">
+        <button type="button" className="text-link" onClick={onSkip}>
+          Skip
+        </button>
+      </div>
+
+      <div className="intro-screen__body">
+        <div className="intro-card" key={step}>
+          <AppIcon
+            name={card.icon}
+            className={isLogo ? "intro-card__logo" : "intro-card__icon"}
+            alt={isLogo ? "ClearSignal" : ""}
+          />
+          <h1 className="intro-card__title">{card.title}</h1>
+          <p className="intro-card__body">{card.body}</p>
+          <img
+            src={card.image}
+            alt={card.imageAlt}
+            className="intro-card__mockup"
+          />
+        </div>
+      </div>
+
+      <div className="intro-screen__footer">
+        <ProgressDots total={INTRO_CARDS.length} current={step} />
+        <div className="stack stack--tight">
+          <Button block size="lg" onClick={next}>
+            {isLast ? "Continue" : "Next"}
+          </Button>
+          {step > 0 && (
+            <Button block variant="ghost" onClick={back}>
+              Back
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1461,7 +1619,10 @@ Object.assign(window, {
   DEFAULT_HOSPITAL_CARD,
   getIncidentSuggestionsFromTimeline,
   getSuddenSymptomsFromCheckin,
+  OnboardingSplash,
+  OnboardingIntro,
   OnboardingWelcome,
+  PrivacyScreen,
   OnboardingRole,
   OnboardingSetup,
   TimelineSummary,

@@ -9,6 +9,7 @@ const ICONS = {
   card: "icons/card.svg",
   bulb: "icons/bulb.svg",
   note: "icons/Note.svg",
+  question: "icons/question mark.svg",
 };
 
 function AppIcon({ name, className = "app-icon", alt = "", ...rest }) {

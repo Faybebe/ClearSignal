@@ -212,6 +212,14 @@ a {
   background: var(--bg);
 }
 
+/* Immersive onboarding screens (splash/walkthrough) extend their blue
+   background under the status bar and into the safe-area padding. */
+.phone-frame--tinted,
+.app-shell--tinted,
+.phone-frame--tinted .phone-frame__status {
+  background: var(--primary-light);
+}
+
 .phone-frame__status {
   flex-shrink: 0;
   height: var(--phone-status-height);
@@ -395,8 +403,10 @@ a {
 }
 
 .welcome-screen__main {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 40px;
 }
 
@@ -406,7 +416,6 @@ a {
   align-items: center;
   gap: 16px;
   text-align: center;
-  min-height: 133px;
 }
 
 .welcome-screen__logo {
@@ -421,18 +430,6 @@ a {
   line-height: normal;
   text-wrap: pretty;
   max-width: 353px;
-}
-
-.welcome-screen__features {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.welcome-screen__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
 }
 
 .welcome-screen__footer {
@@ -460,6 +457,165 @@ a {
   max-width: 267px;
   line-height: normal;
   text-wrap: pretty;
+}
+
+/* Onboarding splash — Figma node 16:2 */
+.splash-screen {
+  background: var(--primary-light);
+  align-items: center;
+  padding: var(--screen-gutter-x);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  cursor: pointer;
+}
+
+/* The logo centers in the space above the tulip, which is pinned to the
+   bottom of the screen rather than floating in the middle. */
+.splash-screen__hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.splash-screen__logo {
+  width: min(200px, 60vw);
+  height: auto;
+}
+
+.splash-screen__art {
+  width: min(234px, 60vw);
+  height: auto;
+  flex-shrink: 0;
+}
+
+/* Onboarding educational walkthrough — Figma nodes 16:37 / 16:196 / 16:203 */
+.intro-screen {
+  background: var(--bg);
+  padding: var(--screen-gutter-x);
+  padding-bottom: calc(var(--screen-gutter-x) + env(safe-area-inset-bottom, 0px));
+  gap: 16px;
+}
+
+.intro-screen__top {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.intro-screen__body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+/* The card fills the available height and the mockup absorbs any overflow
+   (cropping from the bottom) so the screen never scrolls. */
+.intro-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.intro-card__logo {
+  width: 140px;
+  height: auto;
+  flex-shrink: 0;
+  animation: introRise 500ms var(--ease) both;
+}
+
+.intro-card__icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  animation: introRise 500ms var(--ease) both;
+}
+
+.intro-card__title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-brand);
+  text-wrap: pretty;
+  max-width: 329px;
+  flex-shrink: 0;
+  animation: introRise 500ms var(--ease) 70ms both;
+}
+
+.intro-card__body {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-brand);
+  line-height: normal;
+  text-wrap: pretty;
+  max-width: 329px;
+  flex-shrink: 0;
+  animation: introRise 500ms var(--ease) 140ms both;
+}
+
+.intro-card__mockup {
+  flex: 1;
+  min-height: 0;
+  width: min(215px, 58vw);
+  object-fit: cover;
+  object-position: top center;
+  border-radius: var(--radius-md);
+  margin-top: 24px;
+  opacity: 0;
+  animation: introFade 600ms var(--ease) 210ms forwards,
+    introFloat 6s ease-in-out 1100ms infinite;
+}
+
+@keyframes introRise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes introFade {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Subtle continuous float so the screen feels alive while idle. */
+@keyframes introFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.intro-screen__footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+/* Buttons span the screen like the in-app sticky footers; only the progress
+   dots stay hugged/centered. */
+.intro-screen__footer .stack {
+  width: 100%;
 }
 
 .feature-card {
@@ -546,6 +702,9 @@ a {
 [data-theme="dark"] img.app-icon,
 [data-theme="dark"] img.feature-card__icon,
 [data-theme="dark"] img.bottom-nav__icon,
+[data-theme="dark"] img.intro-card__icon,
+[data-theme="dark"] .intro-card__logo,
+[data-theme="dark"] .splash-screen__logo,
 [data-theme="dark"] .welcome-screen__logo {
   filter: var(--icon-filter);
 }
