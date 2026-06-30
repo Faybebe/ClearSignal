@@ -63,15 +63,15 @@ const COPY = {
   },
   caregiver: {
     "checkin.question.confusion":
-      "Are you noticing new confusion or behavior changes in {name} today?",
+      "New confusion or behavior changes in {name} today?",
     "checkin.question.hallucinations":
       "Is {name} seeing or hearing things that aren't there?",
-    "checkin.question.falls": "Has {name} had any falls or near-falls since yesterday?",
+    "checkin.question.falls": "Any falls or near-falls for {name} since yesterday?",
     "checkin.question.urine": "Any urine changes for {name}?",
     "checkin.question.fever": "Does {name} have a fever or seem unwell?",
     "checkin.question.eating": "Is {name} eating or drinking much less?",
     "checkin.question.mood":
-      "Does {name} seem more withdrawn, low, or tearful than usual?",
+      "Is {name} more withdrawn, low, or tearful than usual?",
     "checkin.footer": "Compare to {name}'s usual baseline — not perfect days.",
     "checkin.complete.title.flagged": "Concerns noted for {name}",
     "checkin.complete.title.clear": "All clear for {name} today",

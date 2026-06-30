@@ -945,9 +945,16 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
       title="Daily check-in"
       subtitle={`Question ${step + 1} of ${CHECKIN_QUESTIONS.length}`}
       footer={
-        <Button block variant="ghost" onClick={onCancel}>
-          Save and exit
-        </Button>
+        <div style={{ display: "flex", gap: "var(--space-3)" }}>
+          {step > 0 && (
+            <Button block variant="ghost" onClick={() => setStep(step - 1)}>
+              Back
+            </Button>
+          )}
+          <Button block variant="ghost" onClick={onCancel}>
+            Save and exit
+          </Button>
+        </div>
       }
     >
       <ProgressDots total={CHECKIN_QUESTIONS.length} current={step} />
@@ -955,7 +962,8 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
         <div
           style={{
             fontWeight: 700,
-            fontSize: "var(--text-xl)",
+            fontSize: "var(--text-lg)",
+            lineHeight: 1.3,
             marginBottom: 8,
             textWrap: "pretty",
             color: "var(--text)",
@@ -964,34 +972,37 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
           {questionLabel}
         </div>
         {question.hint && (
-          <p style={{ color: "var(--text-brand)", fontSize: "var(--text-sm)", marginBottom: 20 }}>
+          <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: 20 }}>
             {question.hint}
           </p>
         )}
-        <ToggleRow
-          value={answers[question.id]}
-          onChange={setAnswer}
-          options={[
+        <div className="checkin-options" role="group" aria-label="Answer">
+          {[
             { value: "no", label: "No" },
             { value: "yes", label: "Yes" },
-          ]}
-        />
-        <div className="checkin-skip">
-          <button
-            type="button"
-            className={`checkin-skip__btn ${
-              answers[question.id] === "na" ? "checkin-skip__btn--active" : ""
-            }`}
-            aria-pressed={answers[question.id] === "na"}
-            onClick={() => setAnswer("na")}
-          >
-            Didn&apos;t see this
-          </button>
-          <p className="checkin-skip__hint">
-            Use this if you couldn&apos;t observe it today — keeps the day from
-            being marked all-clear.
-          </p>
+            { value: "na", label: "I couldn't check this today" },
+          ].map((opt) => {
+            const selected = answers[question.id] === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                className={`checkin-option ${
+                  selected ? "checkin-option--selected" : ""
+                }`}
+                aria-pressed={selected}
+                onClick={() => setAnswer(opt.value)}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
+        <p className="checkin-hint">
+          Choose &ldquo;I couldn&apos;t check this today&rdquo; if you
+          couldn&apos;t observe it — it keeps the day from being marked
+          all-clear.
+        </p>
       </div>
       <p
         style={{

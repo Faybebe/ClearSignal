@@ -1218,43 +1218,47 @@ input[type="checkbox"]:focus-visible {
   text-wrap: pretty;
 }
 
-/* Daily check-in — "didn't see this" skip, separated from the Yes/No answers */
-.checkin-skip {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border);
+/* Daily check-in answers — three equally-weighted, full-width options stacked
+   vertically. Sharing one border/background/text size signals they are all
+   valid primary choices, so "I couldn't check this today" is neither skipped
+   over nor mistaken for a lesser option. */
+.checkin-options {
   display: flex;
   flex-direction: column;
+  gap: var(--space-3);
+}
+
+.checkin-option {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
   align-items: center;
-  gap: var(--space-1);
-}
-
-.checkin-skip__btn {
-  min-height: var(--touch);
+  justify-content: center;
+  text-align: center;
   padding: var(--space-2) var(--space-4);
-  border: none;
-  background: transparent;
+  line-height: 1.2;
+  text-wrap: balance;
   border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-weight: 600;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   color: var(--text-brand);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  transition: all var(--duration) var(--ease);
 }
 
-.checkin-skip__btn:hover {
-  color: var(--text);
+.checkin-option:hover {
+  filter: brightness(0.97);
 }
 
-.checkin-skip__btn--active {
-  text-decoration: none;
-  background: var(--card);
-  box-shadow: 0 0 0 2px var(--text-subtle);
-  color: var(--text-muted);
+.checkin-option--selected {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--primary);
+  color: var(--primary);
 }
 
-.checkin-skip__hint {
-  margin: 0;
+.checkin-hint {
+  margin: var(--space-3) 0 0;
   font-size: var(--text-xs);
   color: var(--text-subtle);
   text-align: center;
@@ -1617,8 +1621,8 @@ input[type="checkbox"]:focus-visible {
   line-height: 1.2;
   text-wrap: balance;
   border-radius: var(--radius-sm);
-  border: none;
-  background: var(--card);
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-weight: 600;
   font-size: var(--text-base);
   color: var(--text-brand);
@@ -1630,24 +1634,29 @@ input[type="checkbox"]:focus-visible {
 }
 
 .toggle-btn--selected-yes {
-  background: var(--card);
+  background: var(--surface);
+  border-color: transparent;
   box-shadow: 0 0 0 2px var(--primary);
   color: var(--primary);
 }
 
 .toggle-btn--selected-no {
-  background: var(--card);
+  background: var(--surface);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--text-subtle);
   color: var(--text-muted);
 }
 
 .toggle-btn--selected-worse {
   background: var(--danger-light);
+  border-color: transparent;
   box-shadow: 0 0 0 2px var(--danger);
   color: var(--danger);
 }
 
 .toggle-btn--selected-na {
-  background: var(--card);
+  background: var(--surface);
+  border-color: transparent;
   box-shadow: 0 0 0 2px var(--text-subtle);
   color: var(--text-muted);
 }
