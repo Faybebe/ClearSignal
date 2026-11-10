@@ -4,7 +4,6 @@ const SCREEN_LIST = [
   { id: "onboarding-splash", label: "01 Onboarding — Splash" },
   { id: "onboarding-welcome", label: "02 Onboarding — Welcome" },
   { id: "privacy", label: "02b Privacy & data" },
-  { id: "onboarding-intro", label: "03 Onboarding — Walkthrough" },
   { id: "onboarding-role", label: "04 Onboarding — Role" },
   { id: "onboarding-setup", label: "05 Onboarding — Setup" },
   { id: "home", label: "06 Home" },
@@ -112,6 +111,7 @@ function App() {
   };
 
   const handleCheckInComplete = ({
+    answers = {},
     flagged,
     flaggedIds = [],
     outcome = flagged ? "flagged" : "clear",
@@ -129,19 +129,43 @@ function App() {
         : outcome === "partial"
         ? "Partly logged"
         : "No concerns";
+    const statusLabel =
+      status === "watch" ? "Watch" : status === "partial" ? "Partial" : "Stable";
+    const chips = [];
+    Object.keys(answers).forEach((id) => {
+      const label = CHECKIN_SHORT_LABELS[id];
+      if (!label) return;
+      if (answers[id] === "yes") {
+        chips.push({ label, tone: "watch" });
+      } else if (answers[id] === "na") {
+        chips.push({ label: `${label}: didn't see`, tone: "unseen" });
+      }
+    });
+    const time = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
     const entry = {
       date: new Date().toDateString(),
       flagged,
       flaggedIds,
+      answers,
       outcome,
       day: new Date().getDate(),
       month: new Date().toLocaleString("en-US", { month: "short" }),
+      time,
       type: "checkin",
-      title: "Daily check-in",
+      title: `Daily check-in · ${statusLabel}`,
       detail,
       status,
+      chips: status === "good" ? [] : chips,
     };
-    setLastCheckIn({ date: entry.date, flagged, outcome });
+    setLastCheckIn({
+      date: entry.date,
+      flagged,
+      outcome,
+      time,
+    });
     setLastCheckInOutcome(outcome);
     setLastCheckInFlaggedIds(flaggedIds);
     setTimelineEntries((prev) => [entry, ...prev]);
@@ -152,14 +176,24 @@ function App() {
     const recipients = getAlertRecipients(careProfile);
     const recipientNames = getRecipientDisplayNames(recipients);
 
+    const time = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    const chipTone = severity === "alert" ? "alert" : "watch";
     const entry = {
       day: new Date().getDate(),
       month: new Date().toLocaleString("en-US", { month: "short" }),
+      time,
       type: "alert",
-      title: "Sudden change alert",
+      title: "Sudden change",
       detail: `${symptoms.join(", ")}${note ? ` · ${note}` : ""}`,
       status: severity,
       notified: recipientNames,
+      outcome: recipientNames.length
+        ? `Alert sent to ${recipientNames.join(", ")}`
+        : "Logged to timeline",
+      chips: symptoms.map((label) => ({ label, tone: chipTone })),
     };
     setLastAlertRecipients(recipientNames);
     setLastAlertSeverity(severity);
@@ -188,7 +222,6 @@ function App() {
   const handleTweaksJump = (screenId) => {
     if (
       screenId !== "onboarding-splash" &&
-      screenId !== "onboarding-intro" &&
       screenId !== "onboarding-welcome" &&
       screenId !== "privacy" &&
       screenId !== "onboarding-role" &&
@@ -215,21 +248,13 @@ function App() {
       case "onboarding-splash":
         return <OnboardingSplash onContinue={() => goTo("onboarding-welcome")} />;
 
-      case "onboarding-intro":
-        return (
-          <OnboardingIntro
-            onDone={() => goTo("onboarding-role")}
-            onSkip={() => goTo("onboarding-role")}
-          />
-        );
-
       case "privacy":
         return <PrivacyScreen onBack={() => goTo("onboarding-welcome")} />;
 
       case "onboarding-welcome":
         return (
           <OnboardingWelcome
-            onNext={() => goTo("onboarding-intro")}
+            onNext={() => goTo("onboarding-role")}
             onPrivacy={() => goTo("privacy")}
             onErMode={() => {
               setOnboarded(true);
@@ -319,6 +344,7 @@ function App() {
             role={role}
             patientName={patientName}
             hasRecipients={hasAlertRecipients}
+            recipientNames={alertRecipientNames}
             initialSymptoms={suddenPrefill}
             onSend={handleSuddenAlert}
             onCancel={() => goTo("home")}

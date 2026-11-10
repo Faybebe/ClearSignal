@@ -101,30 +101,58 @@ function getRecipientDisplayNames(recipients) {
   return recipients.map((r) => r.name || r.contact).filter(Boolean);
 }
 
+const SAMPLE_TIMELINE_PATTERN =
+  "Confusion 2 days in a row, then fever and a positive UTI strip.";
+
+// Week aligned with Home (ending Tuesday, Nov 10). Newest first.
 const SAMPLE_TIMELINE_ENTRIES = [
   {
-    day: 11,
-    month: "Jun",
+    day: 10,
+    month: "Nov",
+    time: "2:14 pm",
     type: "alert",
-    title: "Sudden change alert",
+    title: "Sudden change",
     detail: "Confusion, fever · UTI strip positive",
     status: "alert",
-  },
-  {
-    day: 10,
-    month: "Jun",
-    type: "checkin",
-    title: "Daily check-in",
-    detail: "Confusion: yes · Urine changes: yes",
-    status: "watch",
+    outcome: "Alert sent to Joe",
+    chips: [
+      { label: "Confusion", tone: "alert" },
+      { label: "Fever", tone: "alert" },
+      { label: "UTI strip positive", tone: "alert" },
+    ],
   },
   {
     day: 9,
-    month: "Jun",
+    month: "Nov",
+    time: "9:05 am",
     type: "checkin",
-    title: "Daily check-in",
+    title: "Daily check-in · Watch",
+    detail: "Confusion, Urine changes",
+    status: "watch",
+    chips: [
+      { label: "Confusion", tone: "watch" },
+      { label: "Urine changes", tone: "watch" },
+      { label: "Falls: didn't see", tone: "unseen" },
+    ],
+  },
+  {
+    day: 8,
+    month: "Nov",
+    time: "8:40 am",
+    type: "checkin",
+    title: "Daily check-in · Stable",
     detail: "No concerns",
     status: "good",
+    chips: [],
+  },
+  {
+    day: 7,
+    month: "Nov",
+    type: "missed",
+    title: "No check-in",
+    detail: "",
+    status: "missed",
+    chips: [],
   },
 ];
 
@@ -132,6 +160,25 @@ function getTimelineDisplayEntries(entries, sampleData) {
   if (entries.length > 0) return entries;
   if (sampleData) return SAMPLE_TIMELINE_ENTRIES;
   return [];
+}
+
+function getTimelinePatternSummary(entries, sampleData) {
+  if (sampleData && (!entries || entries.length === 0)) {
+    return SAMPLE_TIMELINE_PATTERN;
+  }
+  return null;
+}
+
+function getTimelineRangeLabel(entries, { sampleWeek = false } = {}) {
+  if (sampleWeek) return "Nov 4 – 10";
+  if (!entries || entries.length === 0) return "Last 7 days";
+  const days = entries.map((e) => e.day).filter((d) => d != null);
+  if (!days.length) return "Last 7 days";
+  const month = entries[0].month || "";
+  const lo = Math.min(...days);
+  const hi = Math.max(...days);
+  if (lo === hi) return `${month} ${lo}`;
+  return `${month} ${lo} – ${hi}`;
 }
 
 Object.assign(window, {
@@ -142,5 +189,8 @@ Object.assign(window, {
   getAlertRecipients,
   getRecipientDisplayNames,
   SAMPLE_TIMELINE_ENTRIES,
+  SAMPLE_TIMELINE_PATTERN,
   getTimelineDisplayEntries,
+  getTimelinePatternSummary,
+  getTimelineRangeLabel,
 });

@@ -3,28 +3,31 @@ const { useState, useEffect } = React;
 const CHECKIN_QUESTIONS = [
   {
     id: "confusion",
-    hint: "Trouble following conversation, disoriented, repeating questions",
+    examples: "Trouble following conversation, disoriented, repeating questions",
   },
   {
     id: "hallucinations",
-    hint: "New or worse since yesterday",
+    examples: "Seeing people or animals, or hearing voices that aren't there",
   },
   {
     id: "falls",
+    examples: "Tripped, slipped, or needed help getting up",
   },
   {
     id: "urine",
-    hint: "Cloudy, strong smell, burning, or new incontinence",
+    examples: "Cloudy, strong smell, burning, or new incontinence",
   },
   {
     id: "fever",
+    examples: "Warm to the touch, chills, or looking flushed",
   },
   {
     id: "eating",
+    examples: "Skipping meals, drinking less, or needing more coaxing",
   },
   {
     id: "mood",
-    hint: "More withdrawn, low, or tearful than usual",
+    examples: "Tearful, quieter, or less interested than usual",
   },
 ];
 
@@ -111,7 +114,7 @@ const DEFAULT_HOSPITAL_CARD = {
   ],
   allergies: "Penicillin",
   recentIncidents:
-    "Jun 10 — Near-fall in bathroom, no injury\nMay 28 — Fall from bed, bruised left hip",
+    "Nov 9 — Near-fall in bathroom, no injury\nOct 28 — Fall from bed, bruised left hip",
   notes:
     "Sudden confusion may indicate UTI — test at home and contact PCP. Hallucinations worsened by Ciprofloxacin.",
 };
@@ -176,7 +179,7 @@ function DashboardActionCard({
   );
 }
 
-function RoleCard({ title, description, selected, onClick }) {
+function RoleCard({ icon, iconSelected, title, description, selected, onClick }) {
   return (
     <button
       type="button"
@@ -184,45 +187,120 @@ function RoleCard({ title, description, selected, onClick }) {
       onClick={onClick}
       aria-pressed={selected}
     >
-      <span className="role-card__indicator" aria-hidden="true">
-        {selected && <span className="role-card__indicator-dot" />}
-      </span>
+      <AppIcon
+        name={selected ? iconSelected || icon : icon}
+        className="role-card__icon"
+        alt=""
+      />
       <span className="role-card__content">
         <span className="role-card__title">{title}</span>
         <span className="role-card__description">{description}</span>
+      </span>
+      <span
+        className={`role-card__mark${selected ? " role-card__mark--on" : ""}`}
+        aria-hidden="true"
+      >
+        {selected && (
+          <AppIcon name="checkWhite" className="role-card__mark-icon" alt="" />
+        )}
       </span>
     </button>
   );
 }
 
+function OnboardingChrome({ onBack, title, children, footer }) {
+  return (
+    <div className="screen ob-screen">
+      <header className="ob-top">
+        <button
+          type="button"
+          className="ob-back"
+          onClick={onBack}
+          aria-label="Back"
+        >
+          <AppIcon name="chevronLeft" className="ob-back__icon" alt="" />
+        </button>
+      </header>
+      <div className="screen__scroll ob-screen__scroll">
+        {title && (
+          <h1 className="ob-question" tabIndex={-1}>
+            {title}
+          </h1>
+        )}
+        {children}
+      </div>
+      {footer && <div className="sticky-footer">{footer}</div>}
+    </div>
+  );
+}
+
 function OnboardingWelcome({ onNext, onErMode, onPrivacy }) {
+  const values = [
+    { icon: "checkDark", label: "Daily 60-second check-in" },
+    { icon: "alertDark", label: "One-tap alerts" },
+    { icon: "idDark", label: "Hospital card" },
+  ];
+
   return (
     <div className="screen welcome-screen">
       <div className="welcome-screen__main">
         <div className="welcome-screen__hero">
-          <AppIcon name="logo" className="welcome-screen__logo" alt="ClearSignal" />
-          <p className="welcome-screen__tagline">
-            For caregivers and care teams supporting someone with Parkinson's —
-            spot sudden changes early.
+          <AppIcon
+            name="logo"
+            className="welcome-screen__logo"
+            alt="ClearSignal"
+          />
+          <h1 className="welcome-screen__headline">
+            Notice sudden changes early.
+          </h1>
+          <p className="welcome-screen__support">
+            For people caring for someone with Parkinson's.
           </p>
         </div>
+
+        <ul className="welcome-values" aria-label="What ClearSignal helps with">
+          {values.map((item) => (
+            <li key={item.label} className="welcome-values__item">
+              <AppIcon
+                name={item.icon}
+                className="welcome-values__icon"
+                alt=""
+              />
+              <span className="welcome-values__label">{item.label}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="welcome-screen__footer">
         <div className="welcome-screen__actions">
-          <Button block className="btn--welcome" onClick={onNext}>
-            Get Started
+          <Button
+            block
+            size="lg"
+            className="btn--welcome"
+            onClick={onNext}
+          >
+            Get started
           </Button>
-          <button type="button" className="text-link" onClick={onErMode}>
-            In a crisis right now? Access ER Mode.
+          <button
+            type="button"
+            className="btn btn--outline btn--block welcome-er"
+            onClick={onErMode}
+          >
+            <AppIcon name="firstAid" className="welcome-er__icon" alt="" />
+            In a crisis? Open ER mode
           </button>
         </div>
         <p className="welcome-screen__disclaimer">
-          Not a medical device. For logging and care coordination only.
+          Not a medical device. For logging and care coordination only.{" "}
+          <button
+            type="button"
+            className="welcome-screen__privacy"
+            onClick={onPrivacy}
+          >
+            Privacy and your data
+          </button>
         </p>
-        <button type="button" className="text-link" onClick={onPrivacy}>
-          Privacy &amp; your data
-        </button>
       </div>
     </div>
   );
@@ -326,114 +404,36 @@ function OnboardingSplash({ onContinue }) {
   );
 }
 
-// Role-neutral education shown before the get-started welcome. One card per
-// step with progress dots; fully skippable.
-const INTRO_CARDS = [
-  {
-    icon: "question",
-    image: "icons/Dashboard.png",
-    imageAlt: "ClearSignal home dashboard",
-    title: "What ClearSignal helps you do",
-    body: "ClearSignal helps you and your care circle notice sudden changes early, keep a simple record, and know what to do when something feels off.",
-  },
-  {
-    icon: "check",
-    image: "icons/Check-ins.png",
-    imageAlt: "A daily check-in question",
-    title: "A minute a day builds the bigger picture",
-    body: "A few simple questions about confusion, falls, appetite, mood, and more. Done daily, they reveal your loved one's baseline, so a real change stands out instead of being missed.",
-  },
-  {
-    icon: "alert",
-    image: "icons/Hospital card 2.png",
-    imageAlt: "The hospital card export",
-    title: "When it's urgent, you're not alone",
-    body: "If something changes suddenly, one tap logs it and texts the contacts you choose. ClearSignal also guides you on what to do next and keeps a hospital card ready.",
-  },
-];
-
-function OnboardingIntro({ onDone, onSkip }) {
-  const [step, setStep] = useState(0);
-  const card = INTRO_CARDS[step];
-  const isLast = step === INTRO_CARDS.length - 1;
-  const isLogo = card.icon === "logo";
-
-  const next = () => (isLast ? onDone() : setStep((s) => s + 1));
-  const back = () => setStep((s) => Math.max(0, s - 1));
-
-  return (
-    <div className="screen intro-screen">
-      <div className="intro-screen__top">
-        <button type="button" className="text-link" onClick={onSkip}>
-          Skip
-        </button>
-      </div>
-
-      <div className="intro-screen__body">
-        <div className="intro-card" key={step}>
-          <AppIcon
-            name={card.icon}
-            className={isLogo ? "intro-card__logo" : "intro-card__icon"}
-            alt={isLogo ? "ClearSignal" : ""}
-          />
-          <h1 className="intro-card__title">{card.title}</h1>
-          <p className="intro-card__body">{card.body}</p>
-          <img
-            src={card.image}
-            alt={card.imageAlt}
-            className="intro-card__mockup"
-          />
-        </div>
-      </div>
-
-      <div className="intro-screen__footer">
-        <ProgressDots total={INTRO_CARDS.length} current={step} />
-        <div className="stack stack--tight">
-          <Button block size="lg" onClick={next}>
-            {isLast ? "Continue" : "Next"}
-          </Button>
-          {step > 0 && (
-            <Button block variant="ghost" onClick={back}>
-              Back
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function OnboardingRole({ role, setRole, onNext, onBack }) {
   return (
-    <ScreenLayout
-      title="Who are you setting this up for?"
-      subtitle="Choose the option that fits you best."
+    <OnboardingChrome
+      onBack={onBack}
+      title="Which describes you?"
       footer={
-        <div className="stack stack--tight">
-          <Button block size="lg" disabled={!role} onClick={onNext}>
-            Continue
-          </Button>
-          <Button block variant="ghost" onClick={onBack}>
-            Back
-          </Button>
-        </div>
+        <Button block size="lg" disabled={!role} onClick={onNext}>
+          Continue
+        </Button>
       }
     >
-      <div className="stack">
+      <div className="stack ob-role-options">
         <RoleCard
-          title="I'm a caregiver or care staff"
-          description="Log daily check-ins for a loved one, watch trends, and alert your care circle when something changes."
+          icon="heartHandshakeMuted"
+          iconSelected="heartHandshake"
+          title="I care for someone with Parkinson's"
+          description="Family member, friend, or care staff"
           selected={role === "caregiver"}
           onClick={() => setRole("caregiver")}
         />
         <RoleCard
+          icon="user"
+          iconSelected="userActive"
           title="I'm living with Parkinson's"
-          description="Track your own daily check-ins and send a quick alert when something feels off."
+          description="Track how you feel and alert your people"
           selected={role === "patient"}
           onClick={() => setRole("patient")}
         />
       </div>
-    </ScreenLayout>
+    </OnboardingChrome>
   );
 }
 
@@ -485,23 +485,18 @@ function OnboardingSetup({ data, setData, role, onNext, onBack }) {
   };
 
   return (
-    <ScreenLayout
+    <OnboardingChrome
+      onBack={onBack}
       title="Quick setup"
-      subtitle="Takes about a minute. Everything is editable later."
       footer={
-        <div className="stack stack--tight">
-          <Button
-            block
-            size="lg"
-            disabled={!canFinish}
-            onClick={handleFinish}
-          >
-            Finish setup
-          </Button>
-          <Button block variant="ghost" onClick={onBack}>
-            Back
-          </Button>
-        </div>
+        <Button
+          block
+          size="lg"
+          disabled={!canFinish}
+          onClick={handleFinish}
+        >
+          Finish setup
+        </Button>
       }
     >
       <div className="form-section">
@@ -617,124 +612,257 @@ function OnboardingSetup({ data, setData, role, onNext, onBack }) {
           />
         </Field>
       </div>
-    </ScreenLayout>
+    </OnboardingChrome>
   );
 }
 
-function TimelineSummary({ entries, onViewAll, showLink = true }) {
-  const display = entries.slice(0, 3);
+function getDayKey(date) {
+  return date.toDateString();
+}
 
-  if (display.length === 0) {
-    return (
-      <p className="timeline-summary__empty">
-        No recent entries yet. Complete a check-in to start tracking.
-      </p>
-    );
+// Builds the last-7-days strip for the home status card.
+// status: "stable" | "concern" | "alert" | "missed" | "empty"
+function buildWeekStrip(timelineEntries = [], lastCheckIn, sampleData) {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+
+  // Index real check-ins / alerts by day key
+  const byDay = {};
+  (timelineEntries || []).forEach((e) => {
+    if (!e) return;
+    // Reconstruct a date from month+day in the current/near year
+    const monthIndex = [
+      "Jan","Feb","Mar","Apr","May","Jun",
+      "Jul","Aug","Sep","Oct","Nov","Dec",
+    ].indexOf(e.month);
+    if (monthIndex < 0 || !e.day) return;
+    const d = new Date(today.getFullYear(), monthIndex, e.day, 12);
+    // If more than ~6 months ahead, it's probably last year
+    if (d.getTime() - today.getTime() > 1000 * 60 * 60 * 24 * 180) {
+      d.setFullYear(d.getFullYear() - 1);
+    }
+    const key = getDayKey(d);
+    const rank =
+      e.status === "alert"
+        ? 3
+        : e.status === "watch"
+        ? 2
+        : e.status === "good" || e.status === "partial"
+        ? 1
+        : 0;
+    const prev = byDay[key];
+    if (!prev || rank > prev.rank) {
+      byDay[key] = {
+        rank,
+        status:
+          e.status === "alert"
+            ? "alert"
+            : e.status === "watch"
+            ? "concern"
+            : "stable",
+      };
+    }
+  });
+
+  if (lastCheckIn?.date) {
+    const key = lastCheckIn.date;
+    const outcome = normalizeOutcome(lastCheckIn);
+    const rank = outcome === "flagged" ? 2 : 1;
+    const status = outcome === "flagged" ? "concern" : "stable";
+    const prev = byDay[key];
+    // Don't downgrade a same-day alert already on the timeline
+    if (!prev || rank > prev.rank) {
+      byDay[key] = { rank, status };
+    }
   }
 
-  return (
-    <div className="timeline-summary">
-      {display.map((entry, i) => (
-        <div key={i} className="timeline-summary__row">
-          <span className="timeline-summary__date">
-            {entry.month} {entry.day}
-          </span>
-          <span className="timeline-summary__title">{entry.title}</span>
-          <Chip variant={entry.status}>
-            {entry.status === "good"
-              ? "Stable"
-              : entry.status === "watch"
-              ? "Watch"
-              : entry.status === "partial"
-              ? "Partial"
-              : "Alert"}
-          </Chip>
-        </div>
-      ))}
-      {showLink && (
-        <button type="button" className="timeline-summary__link" onClick={onViewAll}>
-          View full timeline
-        </button>
-      )}
-    </div>
-  );
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = getDayKey(d);
+    const isToday = i === 0;
+    let status = byDay[key]?.status || null;
+
+    // Demo strip when sample data is on and timeline history is empty.
+    // Keep today's real check-in status; fill sparse past days to match the mock.
+    const hasTimelineHistory = (timelineEntries || []).length > 0;
+    if (!status) {
+      if (sampleData && !hasTimelineHistory && !isToday) {
+        // Match the mock: W T F(concern) S S(missed) M T(today)
+        const demo = ["stable", "stable", "stable", "missed", "stable", "concern", "concern"];
+        status = demo[6 - i];
+      } else {
+        // Past days with no entry = missed; today empty until checked in
+        status = isToday ? "empty" : "missed";
+      }
+    }
+
+    days.push({
+      key,
+      label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
+      status,
+      isToday,
+    });
+  }
+  return days;
 }
 
-function StatusSummaryCard({
-  patientName,
+function HomeStatusCard({
   lastCheckIn,
   timelineEntries,
   sampleData,
   onViewTimeline,
   onCheckIn,
-  checkInActionLabel = "Log now",
 }) {
   const checkedInToday = lastCheckIn?.date === new Date().toDateString();
-  const displayEntries = getTimelineDisplayEntries(timelineEntries, sampleData);
-  const summaryOutcome = normalizeOutcome(lastCheckIn);
-  const summaryChip = outcomeChip(summaryOutcome);
+  const outcome = normalizeOutcome(lastCheckIn);
+  const week = buildWeekStrip(timelineEntries, lastCheckIn, sampleData);
 
-  const body = (
-    <>
-      <div className="status-summary__header">
-        <div>
-          <div className="status-summary__label">Today&apos;s check-in</div>
-          <div className="status-summary__value">
-            {checkedInToday
-              ? summaryOutcome === "flagged"
-                ? "Done · some concerns"
-                : summaryOutcome === "partial"
-                ? "Done · partly logged"
-                : "Done · no major concerns"
-              : "Not completed yet"}
-          </div>
-        </div>
-        {checkedInToday ? (
-          <Chip variant={summaryChip.variant}>{summaryChip.label}</Chip>
-        ) : (
-          onCheckIn && (
-            <button
-              type="button"
-              className="status-summary__cta"
-              onClick={onCheckIn}
-            >
-              {checkInActionLabel}
-            </button>
-          )
-        )}
-      </div>
-      <div className="status-summary__divider" />
-      <div className="status-summary__label">Recent activity · {patientName}</div>
-      <TimelineSummary
-        entries={displayEntries}
-        onViewAll={onViewTimeline}
-        showLink={checkedInToday}
-      />
-      {!checkedInToday && (
-        <button
-          type="button"
-          className="timeline-summary__link"
-          onClick={onViewTimeline}
-        >
-          View timeline
-        </button>
-      )}
-    </>
-  );
-
+  let tone = "neutral";
+  let title = "No check-in yet";
+  let detail = "A one-minute check-in keeps the baseline current.";
   if (checkedInToday) {
-    return (
-      <button
-        type="button"
-        className="card card--interactive status-summary"
-        onClick={onViewTimeline}
-      >
-        {body}
-      </button>
-    );
+    if (outcome === "flagged") {
+      tone = "concern";
+      title = "Concerns today";
+      detail = lastCheckIn?.time
+        ? `Check-in done at ${lastCheckIn.time} · some concerns noted`
+        : "Check-in done · some concerns noted";
+    } else if (outcome === "partial") {
+      tone = "partial";
+      title = "Partly logged today";
+      detail = lastCheckIn?.time
+        ? `Check-in done at ${lastCheckIn.time} · some items skipped`
+        : "Check-in done · some items skipped";
+    } else {
+      tone = "stable";
+      title = "Stable today";
+      detail = lastCheckIn?.time
+        ? `Check-in done at ${lastCheckIn.time} · no new concerns`
+        : "Check-in done · no new concerns";
+    }
   }
 
-  return <div className="card status-summary">{body}</div>;
+  return (
+    <section className={`home-status home-status--${tone}`}>
+      <div className="home-status__header">
+        {tone === "stable" && (
+          <AppIcon name="circleCheck" className="home-status__icon" />
+        )}
+        {tone === "concern" && (
+          <AppIcon name="alertTriangleAmber" className="home-status__icon" />
+        )}
+        <h2 className="home-status__title">{title}</h2>
+      </div>
+      <p className="home-status__detail">{detail}</p>
+
+      {!checkedInToday && onCheckIn && (
+        <button type="button" className="home-status__cta" onClick={onCheckIn}>
+          Start check-in
+        </button>
+      )}
+
+      <div className="week-strip" role="list" aria-label="Last 7 days">
+        {week.map((day) => {
+          const statusLabel =
+            day.status === "alert"
+              ? "alert"
+              : day.status === "concern"
+              ? "watch"
+              : day.status === "good" || day.status === "stable"
+              ? "stable"
+              : day.status === "missed"
+              ? "missed check-in"
+              : day.status === "empty"
+              ? "no check-in yet"
+              : day.status;
+          return (
+            <div
+              key={day.key}
+              className="week-strip__day"
+              role="listitem"
+              title={day.key}
+            >
+              <span className="week-strip__label">{day.label}</span>
+              <span
+                className={`week-strip__dot week-strip__dot--${day.status}${
+                  day.isToday ? " week-strip__dot--today" : ""
+                }`}
+                aria-label={`${day.label}: ${statusLabel}${
+                  day.isToday ? ", today" : ""
+                }`}
+              >
+                {day.status === "stable" && (
+                  <AppIcon
+                    name="weekCheck"
+                    className="week-strip__glyph"
+                    alt=""
+                  />
+                )}
+                {day.status === "concern" && (
+                  <span className="week-strip__pip" aria-hidden="true" />
+                )}
+                {day.status === "alert" && (
+                  <AppIcon
+                    name="weekAlert"
+                    className="week-strip__glyph"
+                    alt=""
+                  />
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="home-status__link"
+        onClick={onViewTimeline}
+      >
+        View timeline
+        <AppIcon name="chevronRightLink" className="home-status__link-icon" />
+      </button>
+    </section>
+  );
+}
+
+function HomeActionRow({
+  icon,
+  title,
+  subtitle,
+  onClick,
+  variant = "default",
+}) {
+  return (
+    <button
+      type="button"
+      className={`home-row home-row--${variant}`}
+      onClick={onClick}
+    >
+      <AppIcon
+        name={
+          variant === "danger" || variant === "danger-loud"
+            ? "alertDanger"
+            : icon
+        }
+        className="home-row__icon"
+      />
+      <span className="home-row__text">
+        <span className="home-row__title">{title}</span>
+        {subtitle && <span className="home-row__sub">{subtitle}</span>}
+      </span>
+      <AppIcon
+        name={
+          variant === "danger" || variant === "danger-loud"
+            ? "chevronRightDanger"
+            : "chevronRight"
+        }
+        className="home-row__chevron"
+      />
+    </button>
+  );
 }
 
 function HomeScreen({
@@ -758,115 +886,19 @@ function HomeScreen({
   });
 
   const copyCtx = { role, patientName };
-  const checkedInToday = lastCheckIn?.date === new Date().toDateString();
   const homeOutcome = normalizeOutcome(lastCheckIn);
-  const homeChip = outcomeChip(homeOutcome);
-
-  const patientCheckInCard = checkedInToday ? (
-    <div className="card card--with-icon">
-      <AppIcon name="check" className="app-icon--sm" />
-      <div
-        className="card__body"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-        }}
-      >
-        <div>
-          <div style={{ fontWeight: 600, color: "var(--text)" }}>
-            Today&apos;s check-in done
-          </div>
-          <div style={{ fontSize: "var(--text-sm)", color: "var(--text-brand)" }}>
-            {homeOutcome === "flagged"
-              ? "Some concerns noted"
-              : homeOutcome === "partial"
-              ? "Some items not observed"
-              : "No major concerns"}
-          </div>
-        </div>
-        <Chip variant={homeChip.variant}>{homeChip.label}</Chip>
-      </div>
-    </div>
-  ) : (
-    <DashboardActionCard
-      icon="check"
-      title="Daily check-in"
-      subtitle="About 60 seconds · 7 questions"
-      actionLabel="Check in"
-      onClick={onCheckIn}
-      titleEmphasis
-    />
-  );
-
-  const suddenChangeCard = (
-    <DashboardActionCard
-      icon="alert"
-      title="Something changed suddenly"
-      subtitle={getCopy(
-        hasRecipients
-          ? "home.suddenChange.subtitle"
-          : "home.suddenChange.subtitle.none",
-        copyCtx
-      )}
-      actionLabel="Log now"
-      onClick={onSuddenChange}
-      variant="danger"
-      titleEmphasis
-    />
-  );
-
-  const hospitalCard = (
-    <DashboardActionCard
-      icon="card"
-      title="Hospital card"
-      subtitle="Meds, neurologist, emergency notes — ready to export"
-      actionLabel={role === "caregiver" ? "Edit and export" : "View and export"}
-      onClick={onHospitalCard}
-    />
-  );
-
-  const timelineCard = (
-    <DashboardActionCard
-      icon="trend"
-      title="7-day timeline"
-      subtitle="Spot patterns before your next visit"
-      actionLabel="View"
-      onClick={onViewTimeline}
-    />
-  );
-
-  const timelineSecondary = (
-    <DashboardActionCard
-      icon="trend"
-      title="7-day history"
-      subtitle="Review past check-ins and alerts"
-      actionLabel="View"
-      onClick={onViewTimeline}
-      secondary
-    />
-  );
-
-  const caregiverTip = (
-    <div className="tip-card">
-      <AppIcon name="bulb" className="tip-card__icon" alt="" />
-      <div className="tip-card__body">
-        <div className="tip-card__title">Caregiver tip</div>
-        <p className="tip-card__text">
-          Sudden confusion or hallucinations often mean infection — not
-          Parkinson&apos;s getting worse. Keep UTI test strips handy.
-        </p>
-      </div>
-    </div>
-  );
+  const checkedInToday = lastCheckIn?.date === new Date().toDateString();
+  // Loud sudden-change treatment only when today's check-in flagged concerns
+  const suddenLoud = checkedInToday && homeOutcome === "flagged";
 
   return (
     <ScreenLayout
       title={getCopy("home.title", copyCtx)}
       subtitle={today}
+      titleClassName="home-title"
+      subtitleClassName="home-date"
     >
-      <div className="stack">
+      <div className="home stack">
         {monitorAlertBanner && (
           <div className="monitor-alert-banner" role="status">
             <div>
@@ -887,30 +919,46 @@ function HomeScreen({
           </div>
         )}
 
-        {role === "caregiver" ? (
-          <>
-            <StatusSummaryCard
-              patientName={patientName}
-              lastCheckIn={lastCheckIn}
-              timelineEntries={timelineEntries}
-              sampleData={sampleData}
-              onViewTimeline={onViewTimeline}
-              onCheckIn={onCheckIn}
-              checkInActionLabel={getCopy("home.checkin.action", copyCtx)}
-            />
-            {suddenChangeCard}
-            {timelineCard}
-            {hospitalCard}
-            {caregiverTip}
-          </>
-        ) : (
-          <>
-            {patientCheckInCard}
-            {suddenChangeCard}
-            {hospitalCard}
-            <div className="divider" />
-            {timelineSecondary}
-          </>
+        <HomeStatusCard
+          lastCheckIn={lastCheckIn}
+          timelineEntries={timelineEntries}
+          sampleData={sampleData}
+          onViewTimeline={onViewTimeline}
+          onCheckIn={onCheckIn}
+        />
+
+        <HomeActionRow
+          icon="alert"
+          title="Something changed suddenly"
+          subtitle={
+            suddenLoud
+              ? getCopy(
+                  hasRecipients
+                    ? "home.suddenChange.subtitle"
+                    : "home.suddenChange.subtitle.none",
+                  copyCtx
+                )
+              : null
+          }
+          onClick={onSuddenChange}
+          variant={suddenLoud ? "danger-loud" : "danger"}
+        />
+
+        <HomeActionRow
+          icon="idDark"
+          title="Hospital card"
+          subtitle="Updated Nov 2 · ready to export"
+          onClick={onHospitalCard}
+        />
+
+        {role === "caregiver" && (
+          <div className="tip-card">
+            <AppIcon name="bulb" className="tip-card__icon" alt="" />
+            <div className="tip-card__body">
+              <div className="tip-card__title">Caregiver tip</div>
+              <p className="tip-card__text">{getCopy("home.tip", copyCtx)}</p>
+            </div>
+          </div>
         )}
       </div>
     </ScreenLayout>
@@ -922,9 +970,11 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
   const [answers, setAnswers] = useState({});
   const copyCtx = { role, patientName };
 
+  const total = CHECKIN_QUESTIONS.length;
   const question = CHECKIN_QUESTIONS[step];
-  const isLast = step === CHECKIN_QUESTIONS.length - 1;
+  const isLast = step === total - 1;
   const questionLabel = getCopy(`checkin.question.${question.id}`, copyCtx);
+  const progressPct = ((step + 1) / total) * 100;
 
   const setAnswer = (value) => {
     const next = { ...answers, [question.id]: value };
@@ -940,48 +990,58 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
     }
   };
 
+  const options = [
+    { value: "no", label: "No" },
+    { value: "yes", label: "Yes" },
+    {
+      value: "na",
+      label: getCopy("checkin.answer.na", copyCtx),
+      icon: "eyeOff",
+    },
+  ];
+
   return (
     <ScreenLayout
-      title="Daily check-in"
-      subtitle={`Question ${step + 1} of ${CHECKIN_QUESTIONS.length}`}
       footer={
-        <div style={{ display: "flex", gap: "var(--space-3)" }}>
-          {step > 0 && (
-            <Button block variant="ghost" onClick={() => setStep(step - 1)}>
-              Back
-            </Button>
-          )}
-          <Button block variant="ghost" onClick={onCancel}>
-            Save and exit
-          </Button>
-        </div>
+        <button type="button" className="checkin-exit" onClick={onCancel}>
+          {getCopy("checkin.exit", copyCtx)}
+        </button>
       }
     >
-      <ProgressDots total={CHECKIN_QUESTIONS.length} current={step} />
-      <div className="card" style={{ marginTop: 8 }}>
-        <div
-          style={{
-            fontWeight: 700,
-            fontSize: "var(--text-lg)",
-            lineHeight: 1.3,
-            marginBottom: 8,
-            textWrap: "pretty",
-            color: "var(--text)",
-          }}
-        >
-          {questionLabel}
-        </div>
-        {question.hint && (
-          <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: 20 }}>
-            {question.hint}
+      <div className="checkin">
+        <header className="checkin-top">
+          <p className="checkin-top__context">
+            {getCopy("checkin.header", copyCtx)}
           </p>
+          <p className="checkin-top__count" aria-hidden="true">
+            {step + 1} of {total}
+          </p>
+        </header>
+
+        <div
+          className="checkin-progress"
+          role="progressbar"
+          aria-valuemin={1}
+          aria-valuemax={total}
+          aria-valuenow={step + 1}
+          aria-label={`Question ${step + 1} of ${total}`}
+        >
+          <div
+            className="checkin-progress__fill"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+
+        <h1 className="checkin-question">{questionLabel}</h1>
+        {question.examples && (
+          <p className="checkin-examples">{question.examples}</p>
         )}
+        <p className="checkin-baseline">
+          {getCopy("checkin.baseline", copyCtx)}
+        </p>
+
         <div className="checkin-options" role="group" aria-label="Answer">
-          {[
-            { value: "no", label: "No" },
-            { value: "yes", label: "Yes" },
-            { value: "na", label: "I couldn't check this today" },
-          ].map((opt) => {
+          {options.map((opt) => {
             const selected = answers[question.id] === opt.value;
             return (
               <button
@@ -993,27 +1053,15 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
                 aria-pressed={selected}
                 onClick={() => setAnswer(opt.value)}
               >
-                {opt.label}
+                {opt.icon && (
+                  <AppIcon name={opt.icon} className="checkin-option__icon" />
+                )}
+                <span>{opt.label}</span>
               </button>
             );
           })}
         </div>
-        <p className="checkin-hint">
-          Choose &ldquo;I couldn&apos;t check this today&rdquo; if you
-          couldn&apos;t observe it — it keeps the day from being marked
-          all-clear.
-        </p>
       </div>
-      <p
-        style={{
-          marginTop: 24,
-          fontSize: "var(--text-xs)",
-          color: "var(--text-subtle)",
-          textAlign: "center",
-        }}
-      >
-        {getCopy("checkin.footer", copyCtx)}
-      </p>
     </ScreenLayout>
   );
 }
@@ -1053,7 +1101,7 @@ function CheckInComplete({
       ? "status-circle--partial"
       : "status-circle--good";
   const circleIcon =
-    variant === "flagged" ? "note" : variant === "clear" ? "check" : "bulb";
+    variant === "flagged" ? "note" : variant === "clear" ? "circleCheck" : "bulb";
 
   const subtitle = hasAcute
     ? getCopy("checkin.complete.subtitle.flagged.acute", copyCtx)
@@ -1128,10 +1176,26 @@ function SelectOption({ label, selected, onClick }) {
   );
 }
 
-function SuddenChangeFlow({ role, patientName, hasRecipients, initialSymptoms = [], onSend, onCancel }) {
+function formatRecipientNames(names) {
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+function SuddenChangeFlow({
+  role,
+  patientName,
+  hasRecipients,
+  recipientNames = [],
+  initialSymptoms = [],
+  onSend,
+  onCancel,
+}) {
   const [symptoms, setSymptoms] = useState(initialSymptoms);
   const [note, setNote] = useState("");
-  const copyCtx = { role, patientName };
+  const [noteOpen, setNoteOpen] = useState(false);
+  const namesLabel = formatRecipientNames(recipientNames);
+  const copyCtx = { role, patientName, names: namesLabel };
 
   const toggle = (id) => {
     setSymptoms((prev) =>
@@ -1139,185 +1203,382 @@ function SuddenChangeFlow({ role, patientName, hasRecipients, initialSymptoms = 
     );
   };
 
+  // Clinical triggers are illustrative for the prototype; a real product would
+  // define alert symptoms with clinicians.
   const options = [
     { id: "confusion", label: "Sudden confusion", severity: "watch" },
     { id: "hallucination", label: "New hallucinations", severity: "watch" },
-    { id: "mobility", label: "Can't walk / much weaker", severity: "alert" },
+    { id: "mobility", label: "Can't walk or much weaker", severity: "alert" },
     { id: "fall", label: "Fall or injury", severity: "alert" },
     { id: "fever", label: "Fever", severity: "watch" },
-    { id: "other", label: "Other sudden change", severity: "watch" },
+    { id: "other", label: "Something else", severity: "watch" },
   ];
 
   const redIds = options.filter((o) => o.severity === "alert").map((o) => o.id);
-  // Red wins over yellow; null until at least one symptom is picked.
+  const isEmergency = symptoms.some((s) => redIds.includes(s));
   const severity =
-    symptoms.length === 0
-      ? null
-      : symptoms.some((s) => redIds.includes(s))
-      ? "alert"
-      : "watch";
+    symptoms.length === 0 ? null : isEmergency ? "alert" : "watch";
+
+  const ctaLabel = hasRecipients
+    ? getCopy("suddenChange.cta", copyCtx)
+    : getCopy("suddenChange.cta.none", copyCtx);
+
+  const logButton = (
+    <Button
+      block
+      size="lg"
+      variant={isEmergency ? "secondary" : "primary"}
+      className={isEmergency ? "sc-log-secondary" : ""}
+      disabled={symptoms.length === 0}
+      onClick={() => onSend({ symptoms, note, severity: severity || "watch" })}
+    >
+      {ctaLabel}
+    </Button>
+  );
 
   return (
-    <ScreenLayout
-      title="Sudden change"
-      subtitle={getCopy("suddenChange.subtitle", copyCtx)}
-      footer={
-        <div className="stack stack--tight">
-          <Button
-            block
-            size="lg"
-            variant="primary"
-            disabled={symptoms.length === 0}
-            onClick={() => onSend({ symptoms, note, severity })}
-          >
-            {getCopy(hasRecipients ? "suddenChange.cta" : "suddenChange.cta.none", copyCtx)}
-          </Button>
-          <Button block variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
-          <p className="suddenchange-safety">
-            Not monitored — call 911 in an emergency.
-          </p>
+    <div className="screen sc-screen">
+      <header className="sc-header">
+        <div className="sc-header__text">
+          <h1 className="sc-title">{getCopy("suddenChange.title", copyCtx)}</h1>
+          <p className="sc-support">{getCopy("suddenChange.support", copyCtx)}</p>
         </div>
-      }
-    >
-      <div className="suddenchange-lead">
-        <AppIcon name="bulb" className="suddenchange-lead__icon" />
-        <p className="suddenchange-lead__text">
-          {getCopy("suddenChange.lead", copyCtx)}
+        <button
+          type="button"
+          className="sc-close"
+          onClick={onCancel}
+          aria-label="Close"
+        >
+          <AppIcon name="close" className="sc-close__icon" alt="" />
+        </button>
+      </header>
+
+      <div className="screen__scroll sc-scroll">
+        <div className="sc-list" role="group" aria-label="Symptoms">
+          {options.map((opt, i) => {
+            const selected = symptoms.includes(opt.id);
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                className={`sc-row${selected ? " sc-row--selected" : ""}${
+                  i === options.length - 1 ? " sc-row--last" : ""
+                }`}
+                onClick={() => toggle(opt.id)}
+                aria-pressed={selected}
+              >
+                <span
+                  className={`sc-check${selected ? " sc-check--on" : ""}`}
+                  aria-hidden="true"
+                >
+                  {selected && (
+                    <AppIcon
+                      name="checkWhite"
+                      className="sc-check__icon"
+                      alt=""
+                    />
+                  )}
+                </span>
+                <span className="sc-row__label">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {!noteOpen ? (
+          <button
+            type="button"
+            className="sc-add-note"
+            onClick={() => setNoteOpen(true)}
+          >
+            <AppIcon name="plus" className="sc-add-note__icon" alt="" />
+            {getCopy("suddenChange.addNote", copyCtx)}
+          </button>
+        ) : (
+          <label className="sc-note">
+            <span className="visually-hidden">
+              {getCopy("suddenChange.addNote", copyCtx)}
+            </span>
+            <textarea
+              className="sc-note__input"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={getCopy("suddenChange.notePlaceholder", copyCtx)}
+              rows={3}
+              autoFocus
+            />
+          </label>
+        )}
+      </div>
+
+      <div className="sticky-footer sc-footer">
+        {isEmergency && (
+          <div className="sc-emergency" role="alert">
+            <div className="sc-emergency__header">
+              <AppIcon
+                name="alertTriangle"
+                className="sc-emergency__icon"
+                alt=""
+              />
+              <div>
+                <div className="sc-emergency__title">
+                  {getCopy("triage.alert.title", copyCtx)}
+                </div>
+                <p className="sc-emergency__body">
+                  {getCopy("suddenChange.emergency.body", copyCtx)}
+                </p>
+              </div>
+            </div>
+            <a
+              className="btn btn--danger btn--block btn--lg sc-emergency__cta"
+              href="tel:911"
+            >
+              <AppIcon name="phone" className="sc-emergency__phone" alt="" />
+              {getCopy("alertSent.call911", copyCtx)}
+            </a>
+          </div>
+        )}
+
+        {logButton}
+
+        <p className="sc-disclaimer">
+          {getCopy("suddenChange.disclaimer", copyCtx)}
         </p>
       </div>
-
-      <p style={{ fontWeight: 600, marginBottom: 12, color: "var(--text)" }}>Select all that apply</p>
-      <div className="stack stack--tight" style={{ marginBottom: 20 }}>
-        {options.map((opt) => (
-          <SelectOption
-            key={opt.id}
-            label={opt.label}
-            selected={symptoms.includes(opt.id)}
-            onClick={() => toggle(opt.id)}
-          />
-        ))}
-      </div>
-
-      {severity && (
-        <div
-          className={`triage-panel triage-panel--${severity}`}
-          role="status"
-          style={{ marginBottom: 20 }}
-        >
-          <div className="triage-panel__title">
-            {getCopy(`triage.${severity}.title`, copyCtx)}
-          </div>
-          <ol className="triage-panel__steps">
-            {TRIAGE_ACTION_STEPS[severity].map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-            <li>
-              {getCopy(
-                hasRecipients
-                  ? "suddenChange.step.notify"
-                  : "suddenChange.step.notify.none",
-                copyCtx
-              )}
-            </li>
-          </ol>
-          {hasRecipients && (
-            <p className="triage-panel__note">
-              {getCopy("suddenChange.shareNote", copyCtx)}
-            </p>
-          )}
-        </div>
-      )}
-
-      <Field label="Quick note (optional)">
-        <textarea
-          className="field__textarea"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="e.g. Much more confused since this morning"
-        />
-      </Field>
-    </ScreenLayout>
+    </div>
   );
 }
 
-function formatNotifiedSentence(names) {
-  if (names.length === 1) return `${names[0]} has been notified.`;
-  if (names.length === 2) return `${names[0]} and ${names[1]} have been notified.`;
-  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]} have been notified.`;
-}
 
 function AlertSent({ role, patientName, recipientNames, severity, onHome, onOpenHospitalCard }) {
   const copyCtx = { role, patientName };
   const notified = recipientNames.length > 0;
-  const steps = TRIAGE_STEPS[severity] || TRIAGE_STEPS.watch;
-  const subtitle = notified
-    ? formatNotifiedSentence(recipientNames)
-    : getCopy("alertSent.none.subtitle", copyCtx);
+  const isEmergency = severity === "alert";
+  const namesLabel = notified ? formatRecipientNames(recipientNames) : "";
+  const confirmTitle = notified
+    ? getCopy("alertSent.confirm.title", { ...copyCtx, names: namesLabel })
+    : getCopy("alertSent.none.confirm.title", copyCtx);
+  const confirmBody = notified
+    ? getCopy("alertSent.confirm.body", copyCtx)
+    : getCopy("alertSent.none.confirm.body", copyCtx);
 
   return (
     <ScreenLayout
-      title={notified ? "Alert sent" : "Sudden change logged"}
-      subtitle={subtitle}
-      footer={<Button block size="lg" onClick={onHome}>Done</Button>}
+      footer={
+        <button type="button" className="alert-done" onClick={onHome}>
+          Done
+        </button>
+      }
     >
-      <div className="stack">
-        {severity === "alert" && (
-          <div className="triage-panel triage-panel--alert" role="status">
-            <div className="triage-panel__title">
-              {getCopy("triage.alert.title", copyCtx)}
+      <div className="alert-sent">
+        <h1 className="visually-hidden">
+          {isEmergency ? "Emergency next steps" : "Alert sent"}
+        </h1>
+
+        {/* 1. What to do right now */}
+        {isEmergency ? (
+          <section className="alert-emergency" aria-labelledby="alert-emergency-title">
+            <div className="alert-emergency__header">
+              <AppIcon name="alertTriangle" className="alert-emergency__icon" />
+              <div>
+                <h2 id="alert-emergency-title" className="alert-emergency__title">
+                  {getCopy("alertSent.emergency.title", copyCtx)}
+                </h2>
+                <p className="alert-emergency__body">
+                  {getCopy("alertSent.emergency.body", copyCtx)}
+                </p>
+              </div>
             </div>
-            <p className="triage-panel__body">
-              {getCopy("triage.alert.body", copyCtx)}
+            <a className="btn btn--danger btn--block btn--lg alert-emergency__cta" href="tel:911">
+              <AppIcon name="phone" className="alert-emergency__cta-icon" />
+              {getCopy("alertSent.call911", copyCtx)}
+            </a>
+          </section>
+        ) : (
+          <section className="alert-watch" aria-labelledby="alert-watch-title" role="status">
+            <h2 id="alert-watch-title" className="alert-watch__title">
+              {getCopy("alertSent.watch.title", copyCtx)}
+            </h2>
+            <p className="alert-watch__body">
+              {getCopy("alertSent.watch.body", copyCtx)}
             </p>
-          </div>
+          </section>
         )}
 
-        <section className="alert-section">
-          <h2 className="section-title">What happens next</h2>
-          <div className={`card ${notified ? "" : "card--danger"}`}>
-            <p style={{ textWrap: "pretty" }}>
-              {getCopy(notified ? "alertSent.body" : "alertSent.none.body", copyCtx)}
-            </p>
+        {/* 2. What to bring / remember */}
+        <section className="alert-before" aria-labelledby="alert-before-title">
+          <h2 id="alert-before-title" className="form-section__title">
+            {getCopy("alertSent.beforeGo", copyCtx)}
+          </h2>
+          <div className="alert-rows">
+            <button
+              type="button"
+              className="alert-row alert-row--action"
+              onClick={onOpenHospitalCard}
+            >
+              <AppIcon name="id" className="alert-row__icon" />
+              <span className="alert-row__text">
+                <span className="alert-row__title">
+                  {getCopy("alertSent.hospitalCard.title", copyCtx)}
+                </span>
+                <span className="alert-row__sub">
+                  {getCopy("alertSent.hospitalCard.sub", copyCtx)}
+                </span>
+              </span>
+              <AppIcon name="chevronRight" className="alert-row__chevron" />
+            </button>
+            <div className="alert-row">
+              <AppIcon name="pill" className="alert-row__icon" />
+              <span className="alert-row__text">
+                <span className="alert-row__title">
+                  {getCopy("alertSent.levodopa.title", copyCtx)}
+                </span>
+                <span className="alert-row__sub">
+                  {getCopy("alertSent.levodopa.sub", copyCtx)}
+                </span>
+              </span>
+            </div>
           </div>
         </section>
 
-        <section className="alert-section">
-          <h2 className="section-title">
-            {severity === "alert" ? "What to do now" : "Next steps to consider"}
-          </h2>
-          <ol className="alert-steps">
-            {steps.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-          </ol>
+        {/* 3. What already happened — quiet confirmation */}
+        <section
+          className={`alert-confirm ${notified ? "" : "alert-confirm--muted"}`}
+          aria-label={confirmTitle}
+        >
+          <div className="alert-confirm__line">
+            {notified && (
+              <span className="alert-confirm__badge" aria-hidden="true">
+                <AppIcon name="circleCheck" className="alert-confirm__check" />
+              </span>
+            )}
+            <p className="alert-confirm__title">{confirmTitle}</p>
+          </div>
+          <p className="alert-confirm__body">{confirmBody}</p>
         </section>
-
-        <section className="alert-section">
-          <h2 className="section-title">Bring to the hospital</h2>
-          <button
-            type="button"
-            className="card card--interactive alert-hospital"
-            onClick={onOpenHospitalCard}
-          >
-            <h3 className="alert-hospital__title">Open hospital card</h3>
-            <p className="alert-hospital__sub">Bring to the ER if you go</p>
-          </button>
-        </section>
-
-        <p className="alert-safety">{getCopy("alertSent.safety", copyCtx)}</p>
       </div>
     </ScreenLayout>
+  );
+}
+
+function timelineNodeStatus(entry) {
+  if (!entry) return "missed";
+  if (entry.type === "missed" || entry.status === "missed") return "missed";
+  if (entry.status === "alert") return "alert";
+  if (entry.status === "watch" || entry.status === "flagged") return "watch";
+  if (entry.status === "partial") return "partial";
+  return "good";
+}
+
+function formatTimelineMeta(entry) {
+  const parts = [];
+  if (entry.month && entry.day != null) {
+    parts.push(`${entry.month} ${entry.day}`);
+  }
+  if (entry.time) parts.push(entry.time);
+  return parts.join(" · ");
+}
+
+function TimelineSymptomChips({ chips }) {
+  if (!chips || !chips.length) return null;
+  return (
+    <div className="tl-chips" role="list">
+      {chips.map((chip, i) => (
+        <span
+          key={`${chip.label}-${i}`}
+          role="listitem"
+          className={`tl-chip tl-chip--${chip.tone || "neutral"}`}
+        >
+          {chip.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function TimelineEntryRow({ entry, isLast }) {
+  const node = timelineNodeStatus(entry);
+  const isAlert = node === "alert";
+  const isMissed = node === "missed";
+  const meta = formatTimelineMeta(entry);
+  const outcome = entry.outcome || (
+    Array.isArray(entry.notified) && entry.notified.length
+      ? `Alert sent to ${entry.notified.join(", ")}`
+      : null
+  );
+
+  return (
+    <article
+      className={`tl-entry tl-entry--${node}${isLast ? " tl-entry--last" : ""}`}
+    >
+      <div className="tl-entry__rail" aria-hidden="true">
+        <span className={`tl-entry__node tl-entry__node--${node}`} />
+      </div>
+      <div className="tl-entry__body">
+        {(meta || outcome) && (
+          <div className="tl-entry__meta">
+            {meta && <span className="tl-entry__when">{meta}</span>}
+            {outcome && (
+              <span className="tl-entry__outcome">{outcome}</span>
+            )}
+          </div>
+        )}
+        <h2
+          className={`tl-entry__title${
+            isAlert ? " tl-entry__title--alert" : ""
+          }${isMissed ? " tl-entry__title--missed" : ""}`}
+        >
+          {entry.title}
+        </h2>
+        <TimelineSymptomChips chips={entry.chips} />
+      </div>
+    </article>
   );
 }
 
 function TimelineScreen({ entries, sampleData, patientName }) {
   const displayEntries = getTimelineDisplayEntries(entries, sampleData);
+  const usingSample = sampleData && entries.length === 0;
+  const pattern = getTimelinePatternSummary(entries, sampleData);
+  const rangeLabel = getTimelineRangeLabel(displayEntries, {
+    sampleWeek: usingSample,
+  });
+  const weekTitle = patientName ? `${patientName}'s week` : "This week";
+
+  const handleShare = () => {
+    const summary =
+      pattern ||
+      displayEntries
+        .slice(0, 4)
+        .map((e) => `${e.month} ${e.day}: ${e.title}`)
+        .join("\n");
+    const payload = {
+      title: weekTitle,
+      text: summary,
+    };
+    if (navigator.share) {
+      navigator.share(payload).catch(() => {});
+    } else if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(`${weekTitle}\n${summary}`).catch(() => {});
+    }
+  };
+
+  const shareButton = (
+    <button type="button" className="tl-share" onClick={handleShare}>
+      <AppIcon name="share" className="tl-share__icon" alt="" />
+      Share
+    </button>
+  );
 
   if (!sampleData && entries.length === 0) {
     return (
-      <ScreenLayout title="Timeline" subtitle={`Last 7 days · ${patientName}`}>
+      <ScreenLayout
+        title={weekTitle}
+        subtitle="Last 7 days"
+        titleClassName="timeline-title"
+        subtitleClassName="timeline-range"
+        headerAction={shareButton}
+      >
         <div className="empty-state">
           <div className="empty-state__title">No entries yet</div>
           <p style={{ textWrap: "pretty" }}>
@@ -1330,38 +1591,36 @@ function TimelineScreen({ entries, sampleData, patientName }) {
   }
 
   return (
-    <ScreenLayout title="Timeline" subtitle={`Last 7 days · ${patientName}`}>
-      {entries.length === 0 && sampleData && (
-        <p style={{ marginBottom: 16 }}>
-          <span className="placeholder-badge">Sample data</span>
-        </p>
-      )}
-      <div className="stack" style={{ gap: 20 }}>
-        {displayEntries.map((entry, i) => (
-          <div key={i} className="timeline-item">
-            <div className="timeline-item__date">
-              <span>{entry.month}</span>
-              <span className="timeline-item__day">{entry.day}</span>
-            </div>
-            <div className="card" style={{ padding: 16 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 8,
-                  marginBottom: 4,
-                }}
-              >
-                <span style={{ fontWeight: 600 }}>{entry.title}</span>
-                <Chip variant={entry.status}>{entry.status === "good" ? "Stable" : entry.status === "watch" ? "Watch" : entry.status === "partial" ? "Partial" : "Alert"}</Chip>
-              </div>
-              <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-                {entry.detail}
-              </p>
-            </div>
+    <ScreenLayout
+      title={weekTitle}
+      subtitle={rangeLabel}
+      titleClassName="timeline-title"
+      subtitleClassName="timeline-range"
+      headerAction={shareButton}
+    >
+      <div className="timeline">
+        {pattern && (
+          <div className="tl-pattern" role="status">
+            <AppIcon name="trendingUp" className="tl-pattern__icon" alt="" />
+            <p className="tl-pattern__text">{pattern}</p>
           </div>
-        ))}
+        )}
+
+        {usingSample && (
+          <p className="tl-sample-note">
+            <span className="placeholder-badge">Sample data</span>
+          </p>
+        )}
+
+        <div className="tl-list">
+          {displayEntries.map((entry, i) => (
+            <TimelineEntryRow
+              key={`${entry.month}-${entry.day}-${entry.type}-${i}`}
+              entry={entry}
+              isLast={i === displayEntries.length - 1}
+            />
+          ))}
+        </div>
       </div>
     </ScreenLayout>
   );
@@ -1385,7 +1644,6 @@ function HospitalCardScreen({ card, setCard, timelineEntries = [], onExport, onB
   return (
     <ScreenLayout
       title="Hospital card"
-      subtitle="Editable · Export as PDF for ER visits"
       scrollClass="screen__scroll--fade"
       footer={
         <div className="stack stack--tight">
@@ -1530,7 +1788,6 @@ function HospitalCardExport({ card, onBack, onDone }) {
   return (
     <ScreenLayout
       title="Export preview"
-      subtitle="PDF download would start here in the live app"
       footer={
         <div className="stack stack--tight">
           <Button block size="lg" onClick={onDone}>
@@ -1631,13 +1888,13 @@ Object.assign(window, {
   getIncidentSuggestionsFromTimeline,
   getSuddenSymptomsFromCheckin,
   OnboardingSplash,
-  OnboardingIntro,
   OnboardingWelcome,
   PrivacyScreen,
+  OnboardingChrome,
   OnboardingRole,
   OnboardingSetup,
-  TimelineSummary,
-  StatusSummaryCard,
+  HomeStatusCard,
+  HomeActionRow,
   HomeScreen,
   CheckInFlow,
   CheckInComplete,

@@ -1,15 +1,44 @@
 const { useState, useEffect, useRef } = React;
 
 const ICONS = {
+  // Brand mark (not Tabler)
   logo: "icons/ClearSignal.svg",
-  home: "icons/home.svg",
+  // Tabler outline set — consistent stroke weight across the app
+  home: "icons/home.svg",                 // home
   check: "icons/check.svg",
-  trend: "icons/trend.svg",
+  checkDark: "icons/check-dark.svg",               // clipboard-check (daily check-in)
+  circleCheck: "icons/circle-check.svg",  // circle-check (success / sent)
+  trend: "icons/trend.svg",               // chart-line (timeline)
   alert: "icons/alert.svg",
-  card: "icons/card.svg",
-  bulb: "icons/bulb.svg",
-  note: "icons/Note.svg",
-  question: "icons/question mark.svg",
+  alertDark: "icons/alert-dark.svg",               // bell-ringing (sudden change)
+  alertDanger: "icons/alert-danger.svg",
+  alertTriangleAmber: "icons/alert-triangle-amber.svg",
+  card: "icons/id.svg",                   // id (hospital card)
+  id: "icons/id.svg",
+  idDark: "icons/id-dark.svg",
+  bulb: "icons/bulb.svg",                 // bulb (tips)
+  note: "icons/Note.svg",                 // notebook (logged note)
+  question: "icons/question mark.svg",    // help
+  phone: "icons/phone.svg",
+  alertTriangle: "icons/alert-triangle.svg",
+  pill: "icons/pill.svg",
+  eyeOff: "icons/eye-off.svg",
+  chevronRight: "icons/chevron-right.svg",
+  chevronRightDanger: "icons/chevron-right-danger.svg",
+  chevronRightLink: "icons/chevron-right-link.svg",
+  share: "icons/share.svg",
+  trendingUp: "icons/trending-up.svg",
+  weekCheck: "icons/week-check.svg",
+  weekAlert: "icons/week-alert.svg",
+  heartHandshake: "icons/heart-handshake.svg",
+  heartHandshakeMuted: "icons/heart-handshake-muted.svg",
+  user: "icons/user.svg",
+  userActive: "icons/user-active.svg",
+  chevronLeft: "icons/chevron-left.svg",
+  checkWhite: "icons/check-white.svg",
+  close: "icons/x.svg",
+  plus: "icons/plus.svg",
+  firstAid: "icons/first-aid-kit.svg",
 };
 
 function AppIcon({ name, className = "app-icon", alt = "", ...rest }) {
@@ -211,6 +240,8 @@ function ScreenLayout({
   title,
   titleClassName = "",
   subtitle,
+  subtitleClassName = "",
+  headerAction = null,
   children,
   footer,
   showNav,
@@ -218,6 +249,9 @@ function ScreenLayout({
   scrollClass = "",
 }) {
   const titleClasses = ["screen__title", titleClassName].filter(Boolean).join(" ");
+  const subtitleClasses = ["screen__subtitle", subtitleClassName]
+    .filter(Boolean)
+    .join(" ");
   const headingRef = useRef(null);
 
   // Move focus to the screen heading on navigation so keyboard and screen-reader
@@ -230,14 +264,23 @@ function ScreenLayout({
 
   return (
     <div className="screen">
-      {(title || subtitle) && (
-        <header className="screen__header">
-          {title && (
-            <h1 className={titleClasses} tabIndex={-1} ref={headingRef}>
-              {title}
-            </h1>
+      {(title || subtitle || headerAction) && (
+        <header
+          className={`screen__header${
+            headerAction ? " screen__header--split" : ""
+          }`}
+        >
+          <div className="screen__header-main">
+            {subtitle && <p className={subtitleClasses}>{subtitle}</p>}
+            {title && (
+              <h1 className={titleClasses} tabIndex={-1} ref={headingRef}>
+                {title}
+              </h1>
+            )}
+          </div>
+          {headerAction && (
+            <div className="screen__header-action">{headerAction}</div>
           )}
-          {subtitle && <p className="screen__subtitle">{subtitle}</p>}
         </header>
       )}
       <div

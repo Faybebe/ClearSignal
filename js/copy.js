@@ -1,13 +1,16 @@
 const COPY = {
   patient: {
-    "checkin.question.confusion": "More confused than usual?",
+    "checkin.header": "Your check-in · Today",
+    "checkin.question.confusion": "Any new confusion or behavior changes?",
     "checkin.question.hallucinations": "Seeing or hearing things that aren't there?",
     "checkin.question.falls": "Any falls or near-falls?",
-    "checkin.question.urine": "Urine changes?",
+    "checkin.question.urine": "Any urine changes?",
     "checkin.question.fever": "Fever or feeling unwell?",
     "checkin.question.eating": "Eating or drinking much less?",
-    "checkin.question.mood": "Feeling unusually low, hopeless, or withdrawn today?",
-    "checkin.footer": "Compare to your usual baseline — not perfect days.",
+    "checkin.question.mood": "Feeling unusually low or withdrawn?",
+    "checkin.baseline": "Compared to your usual, not your best days",
+    "checkin.answer.na": "Couldn't check this today",
+    "checkin.exit": "Save and exit",
     "checkin.complete.title.flagged": "Thanks — we noted some concerns",
     "checkin.complete.title.clear": "All clear for today",
     "checkin.complete.subtitle.flagged":
@@ -36,11 +39,19 @@ const COPY = {
     "triage.watch.title": "Act today",
     "triage.watch.body":
       "Sudden changes are often caused by infection or medication — not normal progression. Run a home UTI test and call your PCP or neurologist today.",
+    "suddenChange.title": "What's changed?",
+    "suddenChange.support":
+      "Choose all that apply. Sudden changes are often caused by infection, not Parkinson's.",
+    "suddenChange.cta": "Log and alert {names}",
+    "suddenChange.cta.none": "Log to timeline",
+    "suddenChange.emergency.body": "A fall or sudden weakness needs care now.",
+    "suddenChange.disclaimer":
+      "ClearSignal isn't monitored. In an emergency, call 911.",
+    "suddenChange.addNote": "Add a note",
+    "suddenChange.notePlaceholder": "What are you seeing?",
     "suddenChange.subtitle": "What's happening?",
     "suddenChange.lead":
       "Often infection, dehydration, or meds — not normal Parkinson's. When in doubt, seek care.",
-    "suddenChange.cta": "Log & alert your caregiver",
-    "suddenChange.cta.none": "Log sudden change",
     "suddenChange.step.notify": "Tap below to log this & alert your caregiver",
     "suddenChange.step.notify.none": "Tap below to log this on the timeline",
     "suddenChange.shareNote":
@@ -49,30 +60,40 @@ const COPY = {
       "Your caregiver gets a text with what you logged. This isn't a monitored service — for an emergency, call 911.",
     "suddenChange.who.none":
       "No one will be texted yet — add a caregiver contact in setup so they're alerted next time. For an emergency, call 911.",
-    "alertSent.subtitle": "Your caregiver has been notified.",
-    "alertSent.body":
-      "They'll get a text with what you logged and a link to the timeline, and can call to check in.",
-    "alertSent.none.subtitle": "Logged — no one was notified",
-    "alertSent.none.body":
-      "This is saved to your timeline, but no alert was sent because you haven't added a caregiver contact yet. Add one so your caregiver is notified next time.",
-    "alertSent.safety":
-      "Not monitored around the clock — call 911 in an emergency.",
+    "alertSent.confirm.title": "Alert sent to {names}",
+    "alertSent.confirm.body":
+      "They'll get a text with your log and a timeline link, and can call to check in.",
+    "alertSent.none.confirm.title": "Logged — no one was notified",
+    "alertSent.none.confirm.body":
+      "Saved to your timeline. Add a caregiver contact so they're notified next time.",
+    "alertSent.emergency.title": "This may be an emergency",
+    "alertSent.emergency.body": "Don't wait. Call 911 or go to the ER now.",
+    "alertSent.call911": "Call 911",
+    "alertSent.watch.title": "Act today",
+    "alertSent.watch.body":
+      "Sudden changes are often infection or meds — not normal progression. Run a home UTI test and call your PCP or neurologist today.",
+    "alertSent.beforeGo": "Before you go",
+    "alertSent.hospitalCard.title": "Bring your hospital card",
+    "alertSent.hospitalCard.sub": "Meds, neurologist, PD notes",
+    "alertSent.levodopa.title": "Don't stop levodopa",
+    "alertSent.levodopa.sub": "Unless your neurologist says so",
     "home.suddenChange.subtitle": "Alert your caregiver · Log what you're seeing",
     "home.suddenChange.subtitle.none": "Log what you're seeing · Seek care if severe",
-    "home.title": "Good morning",
+    "home.title": "You",
+    "home.tip": "Sudden confusion often means infection, not Parkinson's getting worse.",
   },
   caregiver: {
-    "checkin.question.confusion":
-      "New confusion or behavior changes in {name} today?",
-    "checkin.question.hallucinations":
-      "Is {name} seeing or hearing things that aren't there?",
-    "checkin.question.falls": "Any falls or near-falls for {name} since yesterday?",
-    "checkin.question.urine": "Any urine changes for {name}?",
-    "checkin.question.fever": "Does {name} have a fever or seem unwell?",
-    "checkin.question.eating": "Is {name} eating or drinking much less?",
-    "checkin.question.mood":
-      "Is {name} more withdrawn, low, or tearful than usual?",
-    "checkin.footer": "Compare to {name}'s usual baseline — not perfect days.",
+    "checkin.header": "{name}'s check-in · Today",
+    "checkin.question.confusion": "Any new confusion or behavior changes?",
+    "checkin.question.hallucinations": "Any new hallucinations?",
+    "checkin.question.falls": "Any falls or near-falls?",
+    "checkin.question.urine": "Any urine changes?",
+    "checkin.question.fever": "Fever or seeming unwell?",
+    "checkin.question.eating": "Eating or drinking much less?",
+    "checkin.question.mood": "More withdrawn, low, or tearful?",
+    "checkin.baseline": "Compared to {name}'s usual, not their best days",
+    "checkin.answer.na": "Didn't see {name} today",
+    "checkin.exit": "Save and exit",
     "checkin.complete.title.flagged": "Concerns noted for {name}",
     "checkin.complete.title.clear": "All clear for {name} today",
     "checkin.complete.subtitle.flagged":
@@ -101,11 +122,19 @@ const COPY = {
     "triage.watch.title": "Act today",
     "triage.watch.body":
       "Sudden changes in {name} are often caused by infection or medication — not normal progression. Run a home UTI test and call their PCP or neurologist today.",
+    "suddenChange.title": "What's changed with {name}?",
+    "suddenChange.support":
+      "Choose all that apply. Sudden changes are often caused by infection, not Parkinson's.",
+    "suddenChange.cta": "Log and alert {names}",
+    "suddenChange.cta.none": "Log to timeline",
+    "suddenChange.emergency.body": "A fall or sudden weakness needs care now.",
+    "suddenChange.disclaimer":
+      "ClearSignal isn't monitored. In an emergency, call 911.",
+    "suddenChange.addNote": "Add a note",
+    "suddenChange.notePlaceholder": "What are you seeing?",
     "suddenChange.subtitle": "What's happening with {name}?",
     "suddenChange.lead":
       "Often infection, dehydration, or meds — not normal Parkinson's. When in doubt, seek care.",
-    "suddenChange.cta": "Log & notify your care circle",
-    "suddenChange.cta.none": "Log sudden change",
     "suddenChange.step.notify": "Tap below to log this & alert your care circle",
     "suddenChange.step.notify.none": "Tap below to log this on {name}'s timeline",
     "suddenChange.shareNote":
@@ -114,27 +143,39 @@ const COPY = {
       "Everyone you added to {name}'s care circle gets a text with what you logged. This isn't a monitored service — for an emergency, call 911.",
     "suddenChange.who.none":
       "No one will be texted yet — add a care-circle contact in setup so they're alerted next time. For an emergency, call 911.",
-    "alertSent.subtitle": "Your care circle has been notified.",
-    "alertSent.body":
-      "They'll get a text with what you logged and a link to the timeline, and can call to check in.",
-    "alertSent.none.subtitle": "Logged — no one was notified",
-    "alertSent.none.body":
-      "This sudden change is saved to {name}'s timeline, but no one was alerted — you haven't added a care-circle contact yet. Add one so they're notified next time.",
-    "alertSent.safety":
-      "Not monitored around the clock — call 911 in an emergency.",
+    "alertSent.confirm.title": "Alert sent to {names}",
+    "alertSent.confirm.body":
+      "They'll get a text with your log and a timeline link, and can call to check in.",
+    "alertSent.none.confirm.title": "Logged — no one was notified",
+    "alertSent.none.confirm.body":
+      "Saved to {name}'s timeline. Add a care-circle contact so they're notified next time.",
+    "alertSent.emergency.title": "This may be an emergency",
+    "alertSent.emergency.body": "Don't wait. Call 911 or go to the ER now.",
+    "alertSent.call911": "Call 911",
+    "alertSent.watch.title": "Act today",
+    "alertSent.watch.body":
+      "Sudden changes are often infection or meds — not normal progression. Run a home UTI test and call the PCP or neurologist today.",
+    "alertSent.beforeGo": "Before you go",
+    "alertSent.hospitalCard.title": "Bring {name}'s hospital card",
+    "alertSent.hospitalCard.sub": "Meds, neurologist, PD notes",
+    "alertSent.levodopa.title": "Don't stop levodopa",
+    "alertSent.levodopa.sub": "Unless their neurologist says so",
     "home.suddenChange.subtitle": "Notify your care circle · Log what you're seeing",
     "home.suddenChange.subtitle.none": "Log what you're seeing · Seek care if severe",
-    "home.title": "{name}'s status",
+    "home.title": "{name}",
+    "home.tip": "Sudden confusion often means infection, not Parkinson's getting worse.",
     "home.checkin.title": "Log check-in for {name}",
     "home.checkin.subtitle": "About 60 seconds · observation questions",
     "home.checkin.action": "Log now",
   },
 };
 
-function getCopy(scope, { role = "patient", patientName = "your loved one" } = {}) {
+function getCopy(scope, { role = "patient", patientName = "your loved one", names } = {}) {
   const roleCopy = COPY[role] || COPY.patient;
   const template = roleCopy[scope] || COPY.patient[scope] || scope;
-  return template.replace(/\{name\}/g, patientName);
+  let out = template.replace(/\{name\}/g, patientName);
+  if (names != null) out = out.replace(/\{names\}/g, names);
+  return out;
 }
 
 Object.assign(window, { COPY, getCopy });
