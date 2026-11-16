@@ -941,7 +941,7 @@ function HomeScreen({
               : null
           }
           onClick={onSuddenChange}
-          variant={suddenLoud ? "danger-loud" : "danger"}
+          variant="danger"
         />
 
         <HomeActionRow
@@ -965,9 +965,15 @@ function HomeScreen({
   );
 }
 
-function CheckInFlow({ role, patientName, onComplete, onCancel }) {
+function CheckInFlow({
+  role,
+  patientName,
+  initialAnswers = {},
+  onComplete,
+  onCancel,
+}) {
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(() => ({ ...initialAnswers }));
   const copyCtx = { role, patientName };
 
   const total = CHECKIN_QUESTIONS.length;
@@ -990,6 +996,10 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
     }
   };
 
+  const goBack = () => {
+    if (step > 0) setStep(step - 1);
+  };
+
   const options = [
     { value: "no", label: "No" },
     { value: "yes", label: "Yes" },
@@ -1010,9 +1020,23 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
     >
       <div className="checkin">
         <header className="checkin-top">
-          <p className="checkin-top__context">
-            {getCopy("checkin.header", copyCtx)}
-          </p>
+          <div className="checkin-top__leading">
+            {step > 0 ? (
+              <button
+                type="button"
+                className="checkin-back"
+                onClick={goBack}
+                aria-label="Previous question"
+              >
+                <AppIcon name="chevronLeft" className="checkin-back__icon" alt="" />
+              </button>
+            ) : (
+              <span className="checkin-back checkin-back--spacer" aria-hidden="true" />
+            )}
+            <p className="checkin-top__context">
+              {getCopy("checkin.header", copyCtx)}
+            </p>
+          </div>
           <p className="checkin-top__count" aria-hidden="true">
             {step + 1} of {total}
           </p>
@@ -1066,17 +1090,46 @@ function CheckInFlow({ role, patientName, onComplete, onCancel }) {
   );
 }
 
+function formatRecipientNames(names = []) {
+  if (!names.length) return "";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+function buildCheckInRecap(answers = {}) {
+  const items = [];
+  Object.keys(answers).forEach((id) => {
+    const label = CHECKIN_SHORT_LABELS[id];
+    if (!label) return;
+    if (answers[id] === "yes") {
+      items.push({ id, label, tone: "concern" });
+    } else if (answers[id] === "na") {
+      items.push({
+        id,
+        label: `${label}: didn't see today`,
+        tone: "unseen",
+      });
+    }
+  });
+  return items;
+}
+
 function CheckInComplete({
   role,
   patientName,
   outcome = "clear",
   flaggedIds = [],
+  answers = {},
+  hasRecipients = false,
+  recipientNames = [],
   onHome,
   onSuddenChange,
+  onEdit,
 }) {
-  const copyCtx = { role, patientName };
-  // When the only flagged item is low mood, route to supportive guidance rather
-  // than the infection-oriented sudden-change path.
+  const isCaregiver = role === "caregiver";
+  const name = patientName || (isCaregiver ? "your loved one" : "");
+  const namesLabel = formatRecipientNames(recipientNames);
   const moodOnly =
     outcome === "flagged" &&
     flaggedIds.length > 0 &&
@@ -1088,75 +1141,129 @@ function CheckInComplete({
     : outcome === "partial"
     ? "partial"
     : "clear";
-  // Only flagged check-ins that include an acute item (e.g. a fall) actively
-  // push escalation. Other flagged days are "logged, keep watching."
-  const hasAcute =
-    variant === "flagged" &&
-    flaggedIds.some((id) => ACUTE_CHECKIN_IDS.includes(id));
 
-  const circleClass =
-    variant === "flagged" || variant === "mood"
-      ? "status-circle--watch"
-      : variant === "partial"
-      ? "status-circle--partial"
-      : "status-circle--good";
-  const circleIcon =
-    variant === "flagged" ? "note" : variant === "clear" ? "circleCheck" : "bulb";
+  const concernCount = flaggedIds.length;
+  const recap = buildCheckInRecap(answers);
 
-  const subtitle = hasAcute
-    ? getCopy("checkin.complete.subtitle.flagged.acute", copyCtx)
-    : getCopy(`checkin.complete.subtitle.${variant}`, copyCtx);
-
-  let footer;
-  if (variant === "flagged" && hasAcute) {
-    footer = (
-      <div className="stack stack--tight">
-        <Button block variant="primary" size="lg" onClick={onSuddenChange}>
-          {getCopy("checkin.complete.alertCta", copyCtx)}
-        </Button>
-        <Button block size="lg" variant="ghost" onClick={onHome}>
-          Back to home
-        </Button>
-      </div>
-    );
-  } else if (variant === "flagged") {
-    footer = (
-      <div className="stack stack--tight">
-        <Button block size="lg" variant="primary" onClick={onHome}>
-          Back to home
-        </Button>
-        <button
-          type="button"
-          className="text-link checkin-complete__escalate"
-          onClick={onSuddenChange}
-        >
-          {getCopy("checkin.complete.alertCta", copyCtx)}
-        </button>
-      </div>
-    );
+  let title;
+  if (variant === "flagged") {
+    if (concernCount === 1) {
+      title = isCaregiver
+        ? `1 concern noted for ${name} today`
+        : "1 concern noted today";
+    } else {
+      title = isCaregiver
+        ? `${concernCount} concerns noted for ${name} today`
+        : `${concernCount} concerns noted today`;
+    }
+  } else if (variant === "partial") {
+    title = isCaregiver
+      ? `Partly logged for ${name}`
+      : "Check-in saved — partly logged";
+  } else if (variant === "mood") {
+    title = isCaregiver
+      ? `Noted ${name}'s mood`
+      : "Thanks — noted how you're feeling";
   } else {
-    footer = (
-      <Button block size="lg" variant="primary" onClick={onHome}>
-        Back to home
-      </Button>
-    );
+    title = isCaregiver ? `All clear for ${name} today` : "All clear for today";
   }
 
+  const chip =
+    variant === "flagged" || variant === "mood"
+      ? { label: "Watch", tone: "watch" }
+      : variant === "partial"
+      ? { label: "Partial", tone: "partial" }
+      : { label: "Stable", tone: "stable" };
+
+  const showEscalate = variant === "flagged" || variant === "mood";
+  const escalateSub = hasRecipients
+    ? `Report a sudden change to alert ${namesLabel}`
+    : "Report a sudden change";
+  const notePrefix = isCaregiver
+    ? `Saved to ${name}'s timeline.`
+    : "Saved to your timeline.";
+
   return (
-    <ScreenLayout
-      title={getCopy(`checkin.complete.title.${variant}`, copyCtx)}
-      subtitle={subtitle}
-      footer={footer}
-    >
-      <div className="card" style={{ textAlign: "center", padding: "40px 24px" }}>
-        <div className={`status-circle ${circleClass}`}>
-          <AppIcon name={circleIcon} className="app-icon--sm" />
+    <div className="screen cc-screen">
+      <div className="screen__scroll cc-scroll">
+        <div className="cc-confirm">
+          <AppIcon name="circleCheck" className="cc-confirm__icon" alt="" />
+          <span>Check-in saved</span>
         </div>
-        <p style={{ color: "var(--text-brand)", textWrap: "pretty" }}>
-          {getCopy(`checkin.complete.body.${variant}`, copyCtx)}
-        </p>
+
+        <h1 className="cc-title">{title}</h1>
+
+        <div className={`cc-chip cc-chip--${chip.tone}`}>
+          {chip.tone === "watch" && (
+            <span className="cc-chip__bang" aria-hidden="true">
+              !
+            </span>
+          )}
+          {chip.tone === "stable" && (
+            <span className="cc-chip__check" aria-hidden="true">
+              ✓
+            </span>
+          )}
+          {chip.label}
+        </div>
+
+        {recap.length > 0 && (
+          <div className="cc-recap">
+            <ul className="cc-recap__list">
+              {recap.map((item) => (
+                <li
+                  key={item.id}
+                  className={`cc-recap__item cc-recap__item--${item.tone}`}
+                >
+                  <span className="cc-recap__dot" aria-hidden="true" />
+                  <span className="cc-recap__label">{item.label}</span>
+                </li>
+              ))}
+            </ul>
+            {onEdit && (
+              <button type="button" className="cc-edit" onClick={onEdit}>
+                Edit answers
+              </button>
+            )}
+          </div>
+        )}
+
+        {variant !== "clear" && (
+          <p className="cc-note">
+            <AppIcon name="info" className="cc-note__icon" alt="" />
+            <span>
+              {notePrefix}{" "}
+              <strong>No one has been alerted.</strong>
+            </span>
+          </p>
+        )}
+
+        {showEscalate && (
+          <button
+            type="button"
+            className="home-row home-row--danger cc-escalate"
+            onClick={onSuddenChange}
+          >
+            <AppIcon name="alertDanger" className="home-row__icon" alt="" />
+            <span className="home-row__text">
+              <span className="home-row__title">Getting worse fast?</span>
+              <span className="home-row__sub cc-escalate__sub">{escalateSub}</span>
+            </span>
+            <AppIcon
+              name="chevronRightDanger"
+              className="home-row__chevron"
+              alt=""
+            />
+          </button>
+        )}
       </div>
-    </ScreenLayout>
+
+      <div className="sticky-footer">
+        <Button block size="lg" variant="outline" onClick={onHome}>
+          Done
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -1176,11 +1283,6 @@ function SelectOption({ label, selected, onClick }) {
   );
 }
 
-function formatRecipientNames(names) {
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
-}
 
 function SuddenChangeFlow({
   role,

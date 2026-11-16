@@ -8,6 +8,7 @@ const ICONS = {
   check: "icons/check.svg",
   checkDark: "icons/check-dark.svg",               // clipboard-check (daily check-in)
   circleCheck: "icons/circle-check.svg",  // circle-check (success / sent)
+  info: "icons/info.svg",                 // info-circle (quiet notes)
   trend: "icons/trend.svg",               // chart-line (timeline)
   alert: "icons/alert.svg",
   alertDark: "icons/alert-dark.svg",               // bell-ringing (sudden change)

@@ -44,6 +44,8 @@ function App() {
   const [timelineEntries, setTimelineEntries] = useState([]);
   const [lastCheckInOutcome, setLastCheckInOutcome] = useState("clear");
   const [lastCheckInFlaggedIds, setLastCheckInFlaggedIds] = useState([]);
+  const [lastCheckInAnswers, setLastCheckInAnswers] = useState({});
+  const [checkInDraft, setCheckInDraft] = useState(null);
   const [suddenPrefill, setSuddenPrefill] = useState([]);
   const [lastAlertRecipients, setLastAlertRecipients] = useState([]);
   const [lastAlertSeverity, setLastAlertSeverity] = useState("watch");
@@ -165,10 +167,19 @@ function App() {
       flagged,
       outcome,
       time,
+      answers,
+      flaggedIds,
     });
     setLastCheckInOutcome(outcome);
     setLastCheckInFlaggedIds(flaggedIds);
-    setTimelineEntries((prev) => [entry, ...prev]);
+    setLastCheckInAnswers(answers);
+    setCheckInDraft(null);
+    setTimelineEntries((prev) => {
+      const rest = prev.filter(
+        (e) => !(e.type === "checkin" && e.date === entry.date)
+      );
+      return [entry, ...rest];
+    });
     goTo("checkin-complete");
   };
 
@@ -316,10 +327,15 @@ function App() {
       case "checkin":
         return (
           <CheckInFlow
+            key={checkInDraft ? "edit" : "new"}
             role={role}
             patientName={patientName}
+            initialAnswers={checkInDraft || {}}
             onComplete={handleCheckInComplete}
-            onCancel={() => goTo("home")}
+            onCancel={() => {
+              setCheckInDraft(null);
+              goTo(checkInDraft ? "checkin-complete" : "home");
+            }}
           />
         );
 
@@ -330,10 +346,17 @@ function App() {
             patientName={patientName}
             outcome={lastCheckInOutcome}
             flaggedIds={lastCheckInFlaggedIds}
+            answers={lastCheckInAnswers}
+            hasRecipients={hasAlertRecipients}
+            recipientNames={alertRecipientNames}
             onHome={() => goTo("home")}
             onSuddenChange={() => {
               setSuddenPrefill(getSuddenSymptomsFromCheckin(lastCheckInFlaggedIds));
               goTo("sudden-change");
+            }}
+            onEdit={() => {
+              setCheckInDraft(lastCheckInAnswers || {});
+              goTo("checkin");
             }}
           />
         );
